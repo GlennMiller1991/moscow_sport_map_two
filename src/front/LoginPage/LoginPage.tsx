@@ -9,7 +9,8 @@ interface ILoginPageProps {
     callback: () => void
 }
 
-export const LoginPage: React.FC<ILoginPageProps> =  React.memo((props) => {
+export class LoginPage extends React.Component<ILoginPageProps> {
+  render() {
     return (
       <div className={styles.loginPage}>
         <div className={styles.content}>
@@ -20,7 +21,7 @@ export const LoginPage: React.FC<ILoginPageProps> =  React.memo((props) => {
                 <span style={{color: "#DDD"}}>sport</span>
               </h1>
             </div>
-            <div className={styles.btn}><button onClick={props.callback}>Вход</button></div>
+            <div className={styles.btn}><button onClick={this.props.callback}>Вход</button></div>
           </FadeIn>
         </div>
         <div className={styles.img}>
@@ -30,4 +31,5 @@ export const LoginPage: React.FC<ILoginPageProps> =  React.memo((props) => {
         </div>
       </div>
     )
-})
+  }
+}
