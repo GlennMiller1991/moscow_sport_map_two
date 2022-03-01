@@ -3,9 +3,9 @@ import * as React from 'react';
 import EventEmitter from 'events';
 
 import MapMain from './MapMain';
-import {getInterjacentColorStr, IObj, IRGBA} from '../mid/misc/types';
+import {IObj} from '../mid/misc/types';
 
-import objs from './mock/sport_objects.json';
+import sprtObjs from './mock/sport_objects.json';
 import districts from './mock/districts.json';
 
 import {Select} from 'antd';
@@ -23,6 +23,11 @@ import {LoginPage} from './LoginPage/LoginPage';
 import Table from './Table';
 import {useCallback, useState} from "react";
 
+export type buttonsType = {
+    isPopulationLayer: boolean,
+    isCoverNet: boolean,
+    isAvailOnClick: boolean,
+}
 
 export type filterType = {
     affinityId: number,
@@ -42,26 +47,13 @@ export interface IFilter {
     sportzone?: string,
 }
 
-interface IAppProps {
-}
-
-interface IAppState {
-    isEntranceRemoved?: boolean,
-    objs: IObj[],
-    filter: IFilter,
-    isPopulationLayer?: boolean,
-    isCoverNet?: boolean,
-    isAvailOnClick?: boolean,
-    isOnlyOldRegions?: boolean
-}
-
 function App() {
     console.log('from function component')
     const emitter = new EventEmitter;
 
     //state
     const [isEntranceRemoved, setIsEntranceRemoved] = useState(false)
-    const [objs, setObjs] = useState<IObj[]>([])
+    const [objs, setObjs] = useState<IObj[]>(sprtObjs as IObj[])
     const [filter, setFilter] = useState<filterType>({
         affinityId: 0,
         sportId: 0,
@@ -70,13 +62,28 @@ function App() {
         org: '',
         sportzone: '',
     })
-    const [isPopulationLayer, setIsPopulationLayer] = useState(false)
-    const [isCoverNet, setIsCoverNet] = useState(false)
-    const [isAvailOnClick, setIsAvailOnClick] = useState(false)
+    const [buttonsState, setButtonsState] = useState<buttonsType>({
+        isPopulationLayer: false,
+        isAvailOnClick: false,
+        isCoverNet: false,
+    })
+
 
     //callbacks
+    const onButtonPressHandler = useCallback((obj: Partial<buttonsType>) => {
+        let resButtons = {...buttonsState, ...obj}
+        const key = Object.keys(obj)[0]
+        if (obj[key]) {
+            if (key === 'isPopulationLayer') {
+                resButtons['isCoverNet'] = false
+            } else if (key === 'isCoverNet') {
+                resButtons['isPopulationLayer'] = false
+            }
+        }
+
+        setButtonsState(resButtons)
+    }, [buttonsState])
     const onBlurHandler = useCallback((obj: Partial<filterType>) => {
-        console.log(filter[Object.keys(obj)[0]], obj[Object.keys(obj)[0]], Object.keys(obj), obj, filter)
         if (filter[Object.keys(obj)[0]] !== obj[Object.keys(obj)[0]]) {
             setFilter({...filter, ...obj})
         }
@@ -135,9 +142,9 @@ function App() {
                     <MapMain
                         objs={applyFilter(objs, filter)}
                         emitter={emitter}
-                        isPopulationLayer={isPopulationLayer}
-                        isCoverNet={isCoverNet}
-                        isAvailOnClick={isAvailOnClick}
+                        isPopulationLayer={buttonsState.isPopulationLayer}
+                        isCoverNet={buttonsState.isCoverNet}
+                        isAvailOnClick={buttonsState.isAvailOnClick}
                         districts={districts as any} /* IDistrict[] */
                         sportId={filter.sportId}
                     />
@@ -151,68 +158,11 @@ function App() {
                 </div>
                 <Sidebar
                     emitter={emitter}
-                    isPopulationLayer={isPopulationLayer}
-                    toggleIsPopulationLayer={() => {
-                        /*this.setState((state) => {
-                            return {isPopulationLayer: !state.isPopulationLayer}
-                        })*/
-                    }}
-                    isCoverNet={isCoverNet}
-                    toggleIsCoverNet={() => {
-                        /*this.setState((state) => {
-                            return {isCoverNet: !state.isCoverNet}
-                        })*/
-                    }}
-                    isAvailOnClick={isAvailOnClick}
-                    toggleIsAvailOnClick={() => {
-                        /*this.setState((state) => {
-                            return {isAvailOnClick: !state.isAvailOnClick}
-                        })*/
-                    }}
+                    buttonsState={buttonsState}
+                    onButtonPressHandler={onButtonPressHandler}
                     onBlurHandler={onBlurHandler}
-                    filter={filter}
                 />
                 <Footer/>
-
-                {/*
-                    <div className="info">
-                        <div style={{ width: 200, float: 'left' }}>
-                            <div>Диапазоны площади объектов, кв.м.</div>
-                            {Array(15).fill(0).map((v, i) => {
-                                const rgb1 = [255, 0, 0, 1] as IRGBA;
-                                const rgb2 = [0, 255, 0, 1] as IRGBA;
-
-                                let rgbStr = getInterjacentColorStr(i, 15, rgb1, rgb2);
-
-                                return (<React.Fragment key={i}>
-                                    <div>
-                                        <div style={{ width: 30, height: 20, backgroundColor: rgbStr, float: 'left' }}></div>
-                                        <div style={{ float: 'left', paddingLeft: 5 }}>{2 ** i - 1}{(i < 14) ? (<>&ndash;{2 ** (i + 1) - 1}</>) : <>+</>}</div>
-                                    </div>
-                                    <div style={{ clear: 'both' }}></div>
-                                </React.Fragment>);
-                            })}
-                        </div>
-                        <div style={{ width: 200, float: 'left' }}>
-                            <div>Диапазоны плотности населения</div>
-                            {Array(20).fill(0).filter((v, i) => i % 2).map((v, i) => {
-                                const rgb1 = [0, 0, 255, 1] as IRGBA;
-                                const rgb2 = [255, 0, 0, 1] as IRGBA;
-
-                                let rgbStr = getInterjacentColorStr(i, 9, rgb1, rgb2);
-                                return (
-                                    <React.Fragment key={i}>
-                                        <div>
-                                            <div style={{ width: 30, height: 20, backgroundColor: rgbStr, float: 'left' }}></div>
-                                            <div style={{ float: 'left', paddingLeft: 5 }}>{i * 10}{(i < 9) ? (<>&ndash;{(i + 1) * 10}</>) : <>+</>}</div>
-                                        </div>
-                                        <div style={{ clear: 'both' }}></div>
-                                    </React.Fragment>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div> */}
             </>
         );
     }
