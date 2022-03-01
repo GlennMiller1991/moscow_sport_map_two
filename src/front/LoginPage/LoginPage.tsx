@@ -9,7 +9,7 @@ interface ILoginPageProps {
     callback: () => void
 }
 
-export const LoginPage: React.FC<ILoginPageProps> =  (props) => {
+export const LoginPage: React.FC<ILoginPageProps> =  React.memo((props) => {
     return (
       <div className={styles.loginPage}>
         <div className={styles.content}>
@@ -30,4 +30,4 @@ export const LoginPage: React.FC<ILoginPageProps> =  (props) => {
         </div>
       </div>
     )
-}
+})
