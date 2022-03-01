@@ -3,23 +3,35 @@ import * as React from 'react';
 import EventEmitter from 'events';
 
 import MapMain from './MapMain';
-import { getInterjacentColorStr, IObj, IRGBA } from '../mid/misc/types';
+import {getInterjacentColorStr, IObj, IRGBA} from '../mid/misc/types';
 
 import objs from './mock/sport_objects.json';
 import districts from './mock/districts.json';
 
-import { Select } from 'antd';
-const { Option } = Select;
+import {Select} from 'antd';
+
+const {Option} = Select;
 
 import './App.scss';
 
 const limitMarkers = +Infinity;
-import { Header } from './Header/Header';
-import { Footer } from './Footer/Footer';
-import { Sidebar } from './Sidebar/Sidebar';
-import { LoginPage } from './LoginPage/LoginPage';
+import {Header} from './Header/Header';
+import {Footer} from './Footer/Footer';
+import {Sidebar} from './Sidebar/Sidebar';
+import {LoginPage} from './LoginPage/LoginPage';
 
 import Table from './Table';
+import {useCallback, useState} from "react";
+
+
+export type filterType = {
+    affinityId: number,
+    sportId: number,
+    zonetypeId: number,
+    name: string,
+    org: string,
+    sportzone: string,
+}
 
 export interface IFilter {
     affinityId?: number,
@@ -43,128 +55,126 @@ interface IAppState {
     isOnlyOldRegions?: boolean
 }
 
-class App extends React.Component<IAppProps, IAppState> {
+function App() {
+    console.log('from function component')
+    const emitter = new EventEmitter;
 
-    emitter: EventEmitter;
+    //state
+    const [isEntranceRemoved, setIsEntranceRemoved] = useState(false)
+    const [objs, setObjs] = useState<IObj[]>([])
+    const [filter, setFilter] = useState<filterType>({
+        affinityId: 0,
+        sportId: 0,
+        zonetypeId: 0,
+        name: '',
+        org: '',
+        sportzone: '',
+    })
+    const [isPopulationLayer, setIsPopulationLayer] = useState(false)
+    const [isCoverNet, setIsCoverNet] = useState(false)
+    const [isAvailOnClick, setIsAvailOnClick] = useState(false)
 
-    constructor(props) {
-        super(props);
-
-        this.emitter = new EventEmitter;
-
-        this.state = {
-            // isEntranceRemoved: true,
-            objs: objs as unknown as IObj[],
-            filter: {}
+    //callbacks
+    const onBlurHandler = useCallback((obj: Partial<filterType>) => {
+        console.log(filter[Object.keys(obj)[0]], obj[Object.keys(obj)[0]], Object.keys(obj), obj, filter)
+        if (filter[Object.keys(obj)[0]] !== obj[Object.keys(obj)[0]]) {
+            setFilter({...filter, ...obj})
         }
-    }
-
-    applyFilter() {
-        let newObjs = (objs as unknown as IObj[]).filter(obj => {
+    }, [filter])
+    const applyFilter = useCallback((objs: IObj[], filter: filterType) => {
+        console.log('from applyFilter')
+        return objs.filter(obj => {
             let res = true;
 
-            if (this.state.filter.affinityId) {
-                res = res && obj.affinityId == this.state.filter.affinityId;
+            if (filter.affinityId) {
+                res = res && obj.affinityId === filter.affinityId;
             }
 
-            if (this.state.filter.sportId) {
+            if (filter.sportId) {
                 res = res && !!obj.parts.filter(part => {
-                    return (part.roles as any).includes('' + (this.state.filter.sportId as any));
+                    return (part.roles as any).includes('' + (filter.sportId as any));
                 }).length;
             }
 
-            if (this.state.filter.zonetypeId) {
+            if (filter.zonetypeId) {
                 res = res && !!obj.parts.filter(part => {
-                    return part.sportzonetypeId == this.state.filter.zonetypeId;
+                    return part.sportzonetypeId === filter.zonetypeId;
                 }).length;
             }
 
-            if (this.state.filter.name) {
-                res = res && obj.name.toLowerCase().includes(this.state.filter.name.toLowerCase());
+            if (filter.name) {
+                res = res && obj.name.toLowerCase().includes(filter.name.toLowerCase());
             }
 
-            if (this.state.filter.org) {
-                res = res && obj.org?.toLowerCase().includes(this.state.filter.org.toLowerCase());
+            if (filter.org) {
+                res = res && obj.org?.toLowerCase().includes(filter.org.toLowerCase());
             }
 
-            if (this.state.filter.sportzone) {
+            if (filter.sportzone) {
                 res = res && !!obj.parts.filter(part => {
-                    return part.sportzone?.toLowerCase().includes(this.state.filter.sportzone.toLowerCase());
+                    return part.sportzone?.toLowerCase().includes(filter.sportzone.toLowerCase());
                 }).length;
             }
 
             return res;
         });
+    }, [])
+    const onEnterClick = useCallback(() => {
+        setIsEntranceRemoved(true)
+    }, [])
 
-        this.setState({
-            objs: newObjs
-        });
-    }
-
-    render() {
-        if (!this.state.isEntranceRemoved) {
-            return (<LoginPage
-                callback={() => {
-                    this.setState({ isEntranceRemoved: true })
-                }}
-            />);
-        } else {
-            return (
-                <>
-                    <Header />
-                    <div className="mapContainer">
-                        <MapMain
-                            objs={this.state.objs}
-                            emitter={this.emitter}
-                            isPopulationLayer={this.state.isPopulationLayer}
-                            isCoverNet={this.state.isCoverNet}
-                            isAvailOnClick={this.state.isAvailOnClick}
-                            districts={districts as any} /* IDistrict[] */
-                            sportId={this.state.filter.sportId}
-                        />
-                    </div>
-                    <div style={{clear: 'both'}}></div>
-                    <div className="analytics">
-                        <Table
-                            objs={this.state.objs}
-                            filter={this.state.filter}
-                        />
-                    </div>
-                    <Sidebar
-                        onChange={(filter, doApply) => {
-                            console.log(filter);
-                            let newFilter = { ...this.state.filter, ...filter };
-                            this.setState({ filter: newFilter }, () => {
-                                if (doApply) {
-                                    this.applyFilter();
-                                }
-                            });
-                        }}
-                        emitter={this.emitter}
-                        isPopulationLayer={this.state.isPopulationLayer}
-                        toggleIsPopulationLayer={() => {
-                            this.setState((state) => {
-                                return { isPopulationLayer: !state.isPopulationLayer }
-                            })
-                        }}
-                        isCoverNet={this.state.isCoverNet}
-                        toggleIsCoverNet={() => {
-                            this.setState((state) => {
-                                return { isCoverNet: !state.isCoverNet }
-                            })
-                        }}
-                        isAvailOnClick={this.state.isAvailOnClick}
-                        toggleIsAvailOnClick={() => {
-                            this.setState((state) => {
-                                return { isAvailOnClick: !state.isAvailOnClick }
-                            })
-                        }}
-                        applyFilter={this.applyFilter.bind(this)}
-                        filter={this.state.filter}
+    if (!isEntranceRemoved) {
+        return (<LoginPage
+            callback={onEnterClick}
+        />);
+    } else {
+        return (
+            <>
+                <Header/>
+                <div className="mapContainer">
+                    <MapMain
+                        objs={applyFilter(objs, filter)}
+                        emitter={emitter}
+                        isPopulationLayer={isPopulationLayer}
+                        isCoverNet={isCoverNet}
+                        isAvailOnClick={isAvailOnClick}
+                        districts={districts as any} /* IDistrict[] */
+                        sportId={filter.sportId}
                     />
-                    <Footer />
+                </div>
+                <div style={{clear: 'both'}}/>
+                <div className="analytics">
+                    <Table
+                        objs={objs}
+                        filter={filter}
+                    />
+                </div>
+                <Sidebar
+                    emitter={emitter}
+                    isPopulationLayer={isPopulationLayer}
+                    toggleIsPopulationLayer={() => {
+                        /*this.setState((state) => {
+                            return {isPopulationLayer: !state.isPopulationLayer}
+                        })*/
+                    }}
+                    isCoverNet={isCoverNet}
+                    toggleIsCoverNet={() => {
+                        /*this.setState((state) => {
+                            return {isCoverNet: !state.isCoverNet}
+                        })*/
+                    }}
+                    isAvailOnClick={isAvailOnClick}
+                    toggleIsAvailOnClick={() => {
+                        /*this.setState((state) => {
+                            return {isAvailOnClick: !state.isAvailOnClick}
+                        })*/
+                    }}
+                    onBlurHandler={onBlurHandler}
+                    filter={filter}
+                />
+                <Footer/>
 
-                    {/* 
+                {/*
                     <div className="info">
                         <div style={{ width: 200, float: 'left' }}>
                             <div>Диапазоны площади объектов, кв.м.</div>
@@ -203,9 +213,8 @@ class App extends React.Component<IAppProps, IAppState> {
                         </div>
                     </div>
                 </div> */}
-                </>
-            );
-        }
+            </>
+        );
     }
 }
 
