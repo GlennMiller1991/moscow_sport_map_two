@@ -1,17 +1,16 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
-import './index.css';
+//import './css/index.scss';
 import App from './App';
-import reportWebVitals from './reportWebVitals';
 
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root')
-);
+const DG = require('2gis-maps');
+DG.plugin('https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js')
+    .then(
+        function () {
+            ReactDOM.render(
+                <App/>,
+                document.getElementById('root')
+            );
+        }
+    )
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
