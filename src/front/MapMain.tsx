@@ -126,8 +126,7 @@ function getColorBySquare(square) {
     const rgb1 = [255, 0, 0, 1] as IRGBA;
     const rgb2 = [0, 255, 0, 1] as IRGBA;
 
-    let rgbStr = getInterjacentColorStr(step, stepCount, rgb1, rgb2);
-    return rgbStr;
+    return getInterjacentColorStr(step, stepCount, rgb1, rgb2);
 }
 
 const DG = require('2gis-maps');
@@ -181,6 +180,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         });
     }
 
+    // form html layout on popup
     formPopupInnerHTML(obj: IObj) {
         let affinityName = spr_affinity[obj.affinityId];
 
@@ -260,6 +260,9 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                     ref={(node) => {
                         if (node) {
 
+                            // Question??
+                            // onClick - if avail -> get
+                            // why not avail ? onclick : nothing
                             if (!this.map) {
 
                                 this.map = DG.map('map', {
@@ -281,6 +284,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                                     let count = 0;
                                     let wasIn = false;
 
+                                    // if analyze on click then get nearest objects
                                     if (this.props.isAvailOnClick) {
                                         this.nearestObj(event);
                                     }
@@ -306,6 +310,8 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                                 })
                             }
 
+                            // onClick remove previous layer and get new cluster with leaflet
+                            // on each new obj get html layout and bind it to click on obj
                             if (this.props.isAvailOnClick) {
                                 if (this.cluster) {
                                     this.map.removeLayer(this.cluster);
@@ -348,6 +354,9 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                                     this.cluster = cluster;
                                 }
 
+                                // Question???
+                                // shit structure: delete layer if was changed but then check if need
+                                // color depends on population layer, then get html layout and draw it
                                 if (this.prevProps?.isPopulationLayer !== this.props.isPopulationLayer) {
                                     this.polys.forEach((poly) => {
                                         poly.removeFrom(this.map);
@@ -413,6 +422,8 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                                     }
                                 }
 
+                                // Question???
+                                /// shit structure: see above
                                 if (this.prevProps?.isCoverNet !== this.props.isCoverNet) {
                                     this.polys.forEach((poly) => {
                                         poly.removeFrom(this.map);

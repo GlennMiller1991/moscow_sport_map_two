@@ -29,6 +29,7 @@ let arr = [];
 let arr_cover = [];
 
 async function main() {
+    debugger
     // await fs.promises.writeFile(file, '[');
     await fs.promises.writeFile(file_cover, '[');
 

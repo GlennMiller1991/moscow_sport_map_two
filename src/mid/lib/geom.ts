@@ -8,7 +8,7 @@ const const_etalCosCoef = Math.cos(const_etalLat / 180 * Math.PI);
 * 
 * @param point точка, т.е. массив из 2-х координат [x,y]
 * @param vs многоугольник, т.е. массив точек
-* 
+* @param isInner
 * @returns {Boolean}
 */
 export function inGon(point: [number, number], vs: [number, number][], isInner: boolean = false): boolean {
