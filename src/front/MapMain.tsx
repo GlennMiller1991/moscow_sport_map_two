@@ -15,6 +15,7 @@ import {getSportStats, isInMoscow} from '../mid/misc/helpers';
 import {distanceLatLng} from '../mid/lib/geom';
 import {shadowScreen, unshadowScreen} from './funcBro';
 import {array_unique} from '../mid/lib/func';
+import {useEffect, useState} from "react";
 
 async function calcNet(objs: IObj[]) {
     const GRID_SIZE_LAT = 100;
@@ -268,6 +269,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
             this.intersectPoly.removeFrom(this.map);
         }
     }
+
     setMyMarkerOnMap(event: any) {
         let myIcon = DG.icon({
             iconUrl: arrow,
@@ -280,6 +282,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         marker.bindPopup(popupContent);
         this.nearestMarkers.push(marker);
     }
+
     getZoneInfo(objsFound) {
         let sumSquare = 0;
         let zoneTypeIds = [];
@@ -303,6 +306,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         let rgbStr = getColorBySquare(sumSquare);
         return {zoneTypes, sports, rgbStr, sumSquare}
     }
+
     nearestObj(event: any) {
         let minLat = +Infinity;
         let minLng = +Infinity;
@@ -452,6 +456,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
             }
         })
     }
+
     render() {
         console.log('from main')
         return (
@@ -645,3 +650,64 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         );
     }
 }
+
+
+interface MapMainTwoProps {
+    objs: IObj[],
+    emitter: EventEmitter,
+    isPopulationLayer: boolean,
+    isCoverNet: boolean,
+    isAvailOnClick: boolean,
+    districts: IDistrict[],
+    sportId: number
+}
+
+export const MapMainTwo: React.FC<MapMainTwoProps> = React.memo((props) => {
+        console.log('from map')
+
+        //state
+        const [map, setMap] = useState(null)
+        const [isAvailOnClick, setIsAvailOnClick] = useState(true)
+        const [emitter, setEmitter] = useState<EventEmitter>(props.emitter)
+
+        //callbacks
+        const setMyMarkerOnMap = (event: any) => {
+            let myIcon = DG.icon({
+                iconUrl: arrow,
+                iconSize: [30, 30]
+            });
+            let latlng = [event.latlng.lat, event.latlng.lng]
+            DG.marker([...latlng], {icon: myIcon, opacity: 0.6}).addTo(map);
+        }
+
+        useEffect(() => {
+            setIsAvailOnClick(props.isAvailOnClick)
+        }, [props.isAvailOnClick])
+        useEffect(() => {
+            if (!map) {
+                let map = DG.map('map', {
+                    'center': [55.754753, 37.620861],
+                    'zoom': 11
+                })
+                setMap(map)
+            }
+        }, [])
+
+        return (
+            <>
+                <div id="map"
+                     style={{width: '100%', height: '100%'}}
+                     ref={(node) => {
+                         if (node) {
+                             if (map) {
+                                 map.on('click', (event: any) => {
+                                     if (isAvailOnClick) setMyMarkerOnMap(event)
+                                 })
+                             }
+                         }
+                     }}
+                />
+            </>
+        )
+    }
+)

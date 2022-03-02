@@ -1,6 +1,6 @@
 import * as React from 'react';
 import EventEmitter from 'events';
-import MapMain from './MapMain';
+import MapMain, {MapMainTwo} from './MapMain';
 import {IObj} from '../mid/misc/types';
 import sprtObjs from './mock/sport_objects.json';
 import districts from './mock/districts.json';
@@ -131,7 +131,7 @@ function App() {
             <>
                 <Header/>
                 <div className="mapContainer">
-                    <MapMain
+                    <MapMainTwo
                         objs={applyFilter(objs, filter)}
                         emitter={emitter}
                         isPopulationLayer={buttonsState.isPopulationLayer}
