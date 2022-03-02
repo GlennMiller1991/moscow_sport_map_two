@@ -168,8 +168,8 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         super(props);
 
         this.state = {}
-
         props.emitter.on('clearCircles', () => {
+            debugger
             this.circles.forEach(circle => {
                 circle.removeFrom(this.map);
             })
@@ -453,6 +453,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         })
     }
     render() {
+        console.log('from main')
         return (
             <>
                 <div
@@ -460,7 +461,6 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                     style={{width: '100%', height: '100%'}}
                     ref={(node) => {
                         if (node) {
-
                             // Question??
                             // onClick - if avail -> get
                             // why not avail ? onclick : nothing
@@ -553,7 +553,6 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
 
                                             let poly;
                                             if (1) { // district.coords.length > 1
-                                                console.log(district);
                                                 poly = DG.polygon(district.coords, {color: rgbStr}).addTo(this.map);
 
                                                 let {

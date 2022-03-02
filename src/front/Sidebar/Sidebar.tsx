@@ -18,7 +18,7 @@ interface SideBarProps {
     onButtonPressHandler: (obj: Partial<buttonsType>) => void,
 }
 
-export const Sidebar: React.FC<SideBarProps> = React.memo(({
+export const Sidebar: React.FC<SideBarProps> = ({
                                                                onBlurHandler,
                                                                onButtonPressHandler,
                                                                emitter,
@@ -59,9 +59,9 @@ export const Sidebar: React.FC<SideBarProps> = React.memo(({
                               mocks={spr_affinity}/>
 
                 <div className={styles.mix}>
-                    <button onClick={() => {
+                    <button onClick={useCallback(() => {
                         emitter.emit('clearCircles');
-                    }}>Очистить круги доступности
+                    }, [])}>Очистить круги доступности
                     </button>
                 </div>
 
@@ -85,5 +85,5 @@ export const Sidebar: React.FC<SideBarProps> = React.memo(({
             </div>
         </div>
     )
-})
+}
 

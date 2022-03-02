@@ -1,24 +1,14 @@
 import * as React from 'react';
 import EventEmitter from 'events';
-
 import MapMain from './MapMain';
 import {IObj} from '../mid/misc/types';
-
 import sprtObjs from './mock/sport_objects.json';
 import districts from './mock/districts.json';
-
-import {Select} from 'antd';
-
-const {Option} = Select;
-
 import './App.scss';
-
-const limitMarkers = +Infinity;
 import {Header} from './Header/Header';
 import {Footer} from './Footer/Footer';
 import {Sidebar} from './Sidebar/Sidebar';
 import {LoginPage} from './LoginPage/LoginPage';
-
 import Table from './Table';
 import {useCallback, useState} from "react";
 
@@ -48,7 +38,7 @@ export interface IFilter {
 
 function App() {
     console.log('from function component')
-    const emitter = new EventEmitter;
+    const emitter = new EventEmitter();
 
     //state
     const [isEntranceRemoved, setIsEntranceRemoved] = useState(false)
