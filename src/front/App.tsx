@@ -53,7 +53,7 @@ function App() {
 
     //state
     const [isEntranceRemoved, setIsEntranceRemoved] = useState(false)
-    const [objs, setObjs] = useState<IObj[]>(sprtObjs as IObj[])
+    const [objs, setObjs] = useState<IObj[]>(sprtObjs as unknown as IObj[])
     const [filter, setFilter] = useState<filterType>({
         affinityId: 0,
         sportId: 0,
