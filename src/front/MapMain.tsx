@@ -249,13 +249,12 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         return true;
     }
 
-    nearestObj(event: any) {
+    removeObjectsFromMap() {
         this.circles.forEach(circle => {
             setTimeout(() => {
                 circle.removeFrom(this.map);
             }, 0)
         })
-
         this.circles = [];
 
         this.nearestMarkers.forEach(marker => {
@@ -263,29 +262,53 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                 marker.removeFrom(this.map);
             }, 0)
         });
-
         this.nearestMarkers = [];
 
         if (this.intersectPoly) {
             this.intersectPoly.removeFrom(this.map);
         }
+    }
+    setMyMarkerOnMap(event: any) {
         let myIcon = DG.icon({
             iconUrl: arrow,
             iconSize: [30, 30]
         });
         let latlng = [event.latlng.lat, event.latlng.lng]
         let marker = DG.marker([...latlng], {icon: myIcon, opacity: 0.6}).addTo(this.map);
-        // Why this is here?
-        // let popupContent = '';
-        // marker.bindPopup(popupContent);
-
+        let popupContent = '';
+        // Why is this here?
+        marker.bindPopup(popupContent);
         this.nearestMarkers.push(marker);
+    }
+    getZoneInfo(objsFound) {
+        let sumSquare = 0;
+        let zoneTypeIds = [];
+        let sportIds = [];
 
+        objsFound.forEach((obj) => {
+            sumSquare += obj.square;
+
+            obj.parts.forEach(part => {
+                zoneTypeIds.push(part.sportzonetypeId);
+                sportIds = sportIds.concat(part.roles);
+            })
+        });
+
+        zoneTypeIds = array_unique(zoneTypeIds);
+        sportIds = array_unique(sportIds);
+
+        let zoneTypes = zoneTypeIds.map(id => spr_zonetype[id]);
+        let sports = sportIds.map(id => spr_sport[id]);
+
+        let rgbStr = getColorBySquare(sumSquare);
+        return {zoneTypes, sports, rgbStr, sumSquare}
+    }
+    nearestObj(event: any) {
         let minLat = +Infinity;
         let minLng = +Infinity;
         let maxLat = 0;
         let maxLng = 0;
-        let objsFound = [];
+        let objsFound: Array<IObj & { radius: number }> = [];
 
         this.props.objs.forEach((obj, pos) => {
 
@@ -316,21 +339,17 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                     });
 
                     this.nearestMarkers.push(marker);
-
                     objsFound.push({...obj, radius})
 
                     if (obj.lat < minLat) {
                         minLat = obj.lat;
                     }
-
                     if (obj.lat > maxLat) {
                         maxLat = obj.lat;
                     }
-
                     if (obj.lng < minLng) {
                         minLng = obj.lng;
                     }
-
                     if (obj.lng > maxLng) {
                         maxLng = obj.lng;
                     }
@@ -338,112 +357,101 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
             }
         });
 
-        let amendLat = 0.05;
-        let amendLng = 0.05 * 2;
+        // looking for zones with max
+        // access convenience
+        setTimeout(() => {
+            let amendLat = 0.05;
+            let amendLng = 0.05 * 2;
 
-        let startLat = minLat - amendLat;
-        let startLng = minLng - amendLng;
+            let startLat = minLat - amendLat;
+            let startLng = minLng - amendLng;
+            if (objsFound.length) {
+                const STEP_LAT = 0.0001; // ~ 10 м
+                const STEP_LNG = STEP_LAT * 2; // ~ 100 м
 
-        if (objsFound.length) {
-            const STEP_LAT = 0.0001; // ~ 10 м
-            const STEP_LNG = STEP_LAT * 2; // ~ 100 м
+                let i = 0;
+                let lat;
+                let lng;
 
-            let i = 0;
-            let lat;
-            let lng;
-
-            let points = [];
-            do {
-                let j = 0;
-
+                let points = [];
                 do {
-                    lat = startLat + i * STEP_LAT;
-                    lng = startLng + j * STEP_LNG;
+                    let j = 0;
 
-                    let isIn = true;
-                    for (let k = 0; k < objsFound.length; k++) {
-                        let d = this.map.distance(
-                            {
-                                lat: objsFound[k].lat,
-                                lng: objsFound[k].lng
-                            },
-                            {
-                                lat,
-                                lng
+                    do {
+                        lat = startLat + i * STEP_LAT;
+                        lng = startLng + j * STEP_LNG;
+
+                        // for each obj in found objs calculate
+                        // distance between current latlng. Why?
+                        // If dist-e greater then obj radius
+                        // then isIn turn on false and break loop
+                        // only when all objs in accessing point go to array
+                        let isIn = true;
+                        for (let k = 0; k < objsFound.length; k++) {
+                            let d = this.map.distance(
+                                {
+                                    lat: objsFound[k].lat,
+                                    lng: objsFound[k].lng
+                                },
+                                {
+                                    lat,
+                                    lng
+                                }
+                            );
+
+                            if (d > objsFound[k].radius) {
+                                isIn = false;
+                                break;
                             }
-                        );
-
-                        if (d > objsFound[k].radius) {
-                            isIn = false;
-                            break;
                         }
-                    }
 
-                    if (isIn) {
-                        points.push([lat, lng]);
-                    }
+                        // if isIn true push point to points
+                        if (isIn) {
+                            points.push([lat, lng]);
+                        }
 
-                    j += 1;
-                } while (lng <= maxLng + amendLng);
+                        j += 1;
+                    } while (lng <= maxLng + amendLng);
 
-                i += 1;
-            } while (lat <= maxLat + amendLat);
+                    i += 1;
+                } while (lat <= maxLat + amendLat);
 
-            if (points.length) {
+                if (points.length) {
 
-                let coords = hull(points);
+                    let coords = hull(points);
 
-                let sumSquare = 0;
-                let zoneTypeIds = [];
-                let sportIds = [];
+                    let zoneRes = this.getZoneInfo(objsFound)
+                    this.intersectPoly = DG.polygon(coords, {color: zoneRes.rgbStr}).addTo(this.map);
 
-                objsFound.forEach((obj) => {
-                    sumSquare += obj.square;
-
-                    obj.parts.forEach(part => {
-                        zoneTypeIds.push(part.sportzonetypeId);
-                        sportIds = sportIds.concat(part.roles);
-                    })
-                });
-
-                zoneTypeIds = array_unique(zoneTypeIds);
-                sportIds = array_unique(sportIds);
-
-                let zoneTypes = zoneTypeIds.map(id => spr_zonetype[id]);
-                let sports = sportIds.map(id => spr_sport[id]);
-
-                let rgbStr = getColorBySquare(sumSquare);
-                this.intersectPoly = DG.polygon(coords, {color: rgbStr}).addTo(this.map);
-
-                let popupContent =
-                    `
+                    let popupContent =
+                        `
                 <div class="popup">
                     <div class="fieldCont">
                         Находится в зоне доступности для кол-ва объектов: '+ ${objsFound.length}
                     </div>
                     <div class="fieldCont">
-                        Суммарная площадь: '+ ${sumSquare || '-'}
+                        Суммарная площадь: '+ ${zoneRes.sumSquare || '-'}
                     </div>
                     <div class="fieldCont">
                         <div class="label">Типы спорт. зон</div>
                         <div class="sports">
-                            ${zoneTypes.map((name) => `<div class="value">${name}</div>`).join('\n')}
+                            ${zoneRes.zoneTypes.map((name) => `<div class="value">${name}</div>`).join('\n')}
                         </div>
                     </div>
                     <div class="fieldCont">
                         <div class="label">Виды спорта</div>
                         <div class="sports">
-                            ${sports.map((name) => `<div class="value">${name}</div>`).join('\n')}
+                            ${zoneRes.sports.map((name) => `<div class="value">${name}</div>`).join('\n')}
                         </div>
                     </div>
                 </div>
                 `;
 
-                this.intersectPoly.bindPopup(popupContent);
+                    this.intersectPoly.bindPopup(popupContent);
+                }
             }
-        }
+        })
     }
-
     render() {
         return (
             <>
@@ -467,6 +475,8 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
 
                                     // if analyze on click then get nearest objects
                                     if (this.props.isAvailOnClick) {
+                                        this.removeObjectsFromMap()
+                                        this.setMyMarkerOnMap(event)
                                         this.nearestObj(event);
                                     }
                                 })

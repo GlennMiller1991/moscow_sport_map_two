@@ -54,7 +54,5 @@ export function getInterjacentColorStr(step: number, stepCount: number, rgb1: IR
     let lambda = (step - 1) / stepCount;
 
     let rgb = rgb1.map((v, i) => Math.floor(rgb1[i] + lambda * (rgb2[i] - rgb1[i])));
-    let res = 'RGBA(' + rgb.join(', ') + ')';
-
-    return res;
+    return 'RGBA(' + rgb.join(', ') + ')';
 }
