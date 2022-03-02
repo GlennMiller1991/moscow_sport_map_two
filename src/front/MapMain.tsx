@@ -668,9 +668,32 @@ export const MapMainTwo: React.FC<MapMainTwoProps> = React.memo((props) => {
         //state
         const [map, setMap] = useState(null)
         const [isAvailOnClick, setIsAvailOnClick] = useState(true)
-        const [emitter, setEmitter] = useState<EventEmitter>(props.emitter)
+        const [intersectPoly, setIntersectPoly] = useState(null)
+        let circles = []
+        let nearestMarkers = []
 
         //callbacks
+        const nearestObj = (event: any) => {
+            // let minLat = +Infinity;
+            // let minLng = +Infinity;
+            // let maxLat = 0;
+            // let maxLng = 0;
+            // let objsFound: Array<IObj & { radius: number }> = [];
+
+            props.objs.forEach((obj, pos) => {
+                const distance = map.distance(event.latlng, {
+                    lat: obj.lat,
+                    lng: obj.lng,
+                })
+
+                let radii = [5000, 3000, 1000, 500];
+                let radius = radii[obj.affinityId - 1];
+
+                if (distance <= radius) {
+                    DG.marker({lat: obj.lat, lng: obj.lng}).addTo(map);
+                }
+            })
+        }
         const setMyMarkerOnMap = (event: any) => {
             let myIcon = DG.icon({
                 iconUrl: arrow,
@@ -679,7 +702,21 @@ export const MapMainTwo: React.FC<MapMainTwoProps> = React.memo((props) => {
             let latlng = [event.latlng.lat, event.latlng.lng]
             DG.marker([...latlng], {icon: myIcon, opacity: 0.6}).addTo(map);
         }
+        const removeObjectsFromMap = () => {
+            circles.forEach(circle => {
+                circle.removeFrom(map);
+            })
+            circles = []
 
+            nearestMarkers.forEach(marker => {
+                marker.removeFrom(map);
+            });
+            nearestMarkers = []
+
+            if (intersectPoly) {
+                intersectPoly.removeFrom(map);
+            }
+        }
         useEffect(() => {
             setIsAvailOnClick(props.isAvailOnClick)
         }, [props.isAvailOnClick])
@@ -701,7 +738,11 @@ export const MapMainTwo: React.FC<MapMainTwoProps> = React.memo((props) => {
                          if (node) {
                              if (map) {
                                  map.on('click', (event: any) => {
-                                     if (isAvailOnClick) setMyMarkerOnMap(event)
+                                     if (isAvailOnClick) {
+                                         removeObjectsFromMap()
+                                         setMyMarkerOnMap(event)
+                                         nearestObj(event)
+                                     }
                                  })
                              }
                          }
