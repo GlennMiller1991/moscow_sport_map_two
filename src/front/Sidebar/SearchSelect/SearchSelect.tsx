@@ -25,7 +25,7 @@ export const SearchSelect: React.FC<searchBarPropsType> = React.memo((props) => 
             >
                 <Option key={0} value={0}>Все</Option>
                 {Object.keys(props.mocks).map(key => <Option key={key}
-                                                             value={key}>{spr_zonetype[key]}</Option>)}
+                                                             value={key}>{props.mocks[key]}</Option>)}
             </Select>
         </div>
     )

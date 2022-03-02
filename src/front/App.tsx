@@ -1,5 +1,4 @@
 import * as React from 'react';
-// const DG = require('2gis-maps');
 import EventEmitter from 'events';
 
 import MapMain from './MapMain';
@@ -89,8 +88,8 @@ function App() {
         }
     }, [filter])
     const applyFilter = useCallback((objs: IObj[], filter: filterType) => {
-        console.log('from applyFilter')
-        return objs.filter(obj => {
+        console.log('from applyFilter', filter)
+        return objs.filter((obj) => {
             let res = true;
 
             if (filter.affinityId) {
@@ -105,7 +104,7 @@ function App() {
 
             if (filter.zonetypeId) {
                 res = res && !!obj.parts.filter(part => {
-                    return part.sportzonetypeId === filter.zonetypeId;
+                    return +part.sportzonetypeId === filter.zonetypeId;
                 }).length;
             }
 
