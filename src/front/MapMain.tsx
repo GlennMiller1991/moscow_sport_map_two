@@ -2,18 +2,19 @@ import * as React from 'react';
 import EventEmitter from 'events';
 import sport_objects_district from './mock/sport_objects_district.json';
 import hull from 'hull.js';
+import arrow from './../front/Tilda_Icons_22_Sport/arrow.png'
 
-import { getInterjacentColorStr, IDistrict, IObj, IRGBA } from '../mid/misc/types';
+import {getInterjacentColorStr, IDistrict, IObj, IRGBA} from '../mid/misc/types';
 
 import {
     spr_affinity,
     spr_sport,
     spr_zonetype
 } from './mock/sprs';
-import { getSportStats, isInMoscow } from '../mid/misc/helpers';
-import { distanceLatLng } from '../mid/lib/geom';
-import { shadowScreen, unshadowScreen } from './funcBro';
-import { array_unique } from '../mid/lib/func';
+import {getSportStats, isInMoscow} from '../mid/misc/helpers';
+import {distanceLatLng} from '../mid/lib/geom';
+import {shadowScreen, unshadowScreen} from './funcBro';
+import {array_unique} from '../mid/lib/func';
 
 async function calcNet(objs: IObj[]) {
     const GRID_SIZE_LAT = 100;
@@ -106,7 +107,7 @@ async function getNet(objs: IObj[]) {
         let step = Math.floor(row.qty / max * stepCount);
         let color = getInterjacentColorStr(step, stepCount, rgb1, rgb2);
 
-        res.push({ ...row, color });
+        res.push({...row, color});
     });
 
     return res;
@@ -159,7 +160,6 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
     polys = [];
 
     nearestMarkers = [];
-    // nearestCircles = [];
     intersectPoly;
 
     prevProps;
@@ -167,9 +167,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
     constructor(props) {
         super(props);
 
-        this.state = {
-
-        }
+        this.state = {}
 
         props.emitter.on('clearCircles', () => {
             this.circles.forEach(circle => {
@@ -251,12 +249,207 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         return true;
     }
 
+    nearestObj(event: any) {
+        this.circles.forEach(circle => {
+            setTimeout(() => {
+                circle.removeFrom(this.map);
+            }, 0)
+        })
+
+        this.circles = [];
+
+        this.nearestMarkers.forEach(marker => {
+            setTimeout(() => {
+                marker.removeFrom(this.map);
+            }, 0)
+        });
+
+        this.nearestMarkers = [];
+
+        if (this.intersectPoly) {
+            this.intersectPoly.removeFrom(this.map);
+        }
+        let myIcon = DG.icon({
+            iconUrl: arrow,
+            iconSize: [30, 30]
+        });
+        let latlng = [event.latlng.lat, event.latlng.lng]
+        let marker = DG.marker([...latlng], {icon: myIcon, opacity: 0.6}).addTo(this.map);
+        // Why this is here?
+        // let popupContent = '';
+        // marker.bindPopup(popupContent);
+
+        this.nearestMarkers.push(marker);
+
+        let minLat = +Infinity;
+        let minLng = +Infinity;
+        let maxLat = 0;
+        let maxLng = 0;
+        let objsFound = [];
+
+        this.props.objs.forEach((obj, pos) => {
+
+            const distance = this.map.distance(event.latlng, {
+                lat: obj.lat,
+                lng: obj.lng,
+            })
+
+            let radii = [5000, 3000, 1000, 500];
+            let radius = radii[obj.affinityId - 1];
+
+            if (distance <= radius) {
+                setTimeout(() => {
+                    let marker = DG.marker({lat: obj.lat, lng: obj.lng}).addTo(this.map);
+
+                    let popupContent = this.formPopupInnerHTML(obj);
+                    marker.bindPopup(popupContent);
+
+                    let radii = [5000, 3000, 1000, 500];
+                    let radius = radii[obj.affinityId - 1];
+
+                    let rgbStr = getColorBySquare(obj.square);
+                    marker.on('click', () => {
+                        let circle = DG.circle([obj.lat, obj.lng], {radius, color: rgbStr}).addTo(this.map);
+                        circle.square = obj.square;
+
+                        this.circles.push(circle);
+                    });
+
+                    this.nearestMarkers.push(marker);
+
+                    objsFound.push({...obj, radius})
+
+                    if (obj.lat < minLat) {
+                        minLat = obj.lat;
+                    }
+
+                    if (obj.lat > maxLat) {
+                        maxLat = obj.lat;
+                    }
+
+                    if (obj.lng < minLng) {
+                        minLng = obj.lng;
+                    }
+
+                    if (obj.lng > maxLng) {
+                        maxLng = obj.lng;
+                    }
+                }, 0)
+            }
+        });
+
+        let amendLat = 0.05;
+        let amendLng = 0.05 * 2;
+
+        let startLat = minLat - amendLat;
+        let startLng = minLng - amendLng;
+
+        if (objsFound.length) {
+            const STEP_LAT = 0.0001; // ~ 10 м
+            const STEP_LNG = STEP_LAT * 2; // ~ 100 м
+
+            let i = 0;
+            let lat;
+            let lng;
+
+            let points = [];
+            do {
+                let j = 0;
+
+                do {
+                    lat = startLat + i * STEP_LAT;
+                    lng = startLng + j * STEP_LNG;
+
+                    let isIn = true;
+                    for (let k = 0; k < objsFound.length; k++) {
+                        let d = this.map.distance(
+                            {
+                                lat: objsFound[k].lat,
+                                lng: objsFound[k].lng
+                            },
+                            {
+                                lat,
+                                lng
+                            }
+                        );
+
+                        if (d > objsFound[k].radius) {
+                            isIn = false;
+                            break;
+                        }
+                    }
+
+                    if (isIn) {
+                        points.push([lat, lng]);
+                    }
+
+                    j += 1;
+                } while (lng <= maxLng + amendLng);
+
+                i += 1;
+            } while (lat <= maxLat + amendLat);
+
+            if (points.length) {
+
+                let coords = hull(points);
+
+                let sumSquare = 0;
+                let zoneTypeIds = [];
+                let sportIds = [];
+
+                objsFound.forEach((obj) => {
+                    sumSquare += obj.square;
+
+                    obj.parts.forEach(part => {
+                        zoneTypeIds.push(part.sportzonetypeId);
+                        sportIds = sportIds.concat(part.roles);
+                    })
+                });
+
+                zoneTypeIds = array_unique(zoneTypeIds);
+                sportIds = array_unique(sportIds);
+
+                let zoneTypes = zoneTypeIds.map(id => spr_zonetype[id]);
+                let sports = sportIds.map(id => spr_sport[id]);
+
+                let rgbStr = getColorBySquare(sumSquare);
+                this.intersectPoly = DG.polygon(coords, {color: rgbStr}).addTo(this.map);
+
+                let popupContent =
+                    `
+                <div class="popup">
+                    <div class="fieldCont">
+                        Находится в зоне доступности для кол-ва объектов: '+ ${objsFound.length}
+                    </div>
+                    <div class="fieldCont">
+                        Суммарная площадь: '+ ${sumSquare || '-'}
+                    </div>
+                    <div class="fieldCont">
+                        <div class="label">Типы спорт. зон</div>
+                        <div class="sports">
+                            ${zoneTypes.map((name) => `<div class="value">${name}</div>`).join('\n')}
+                        </div>
+                    </div>
+                    <div class="fieldCont">
+                        <div class="label">Виды спорта</div>
+                        <div class="sports">
+                            ${sports.map((name) => `<div class="value">${name}</div>`).join('\n')}
+                        </div>
+                    </div>
+                </div>
+                `;
+
+                this.intersectPoly.bindPopup(popupContent);
+            }
+        }
+    }
+
     render() {
         return (
             <>
                 <div
                     id="map"
-                    style={{ width: '100%', height: '100%' }}
+                    style={{width: '100%', height: '100%'}}
                     ref={(node) => {
                         if (node) {
 
@@ -270,43 +463,12 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                                     'zoom': 11
                                 });
 
-                                // let l1 = {lat: 55.640000, lng: 37.800000};
-                                // let l2 = {lat: 55.6401, lng: 37.8001};
-
-                                // DG.marker(l1).addTo(this.map);
-                                // DG.marker(l2).addTo(this.map);
-
-                                // console.log(this.map.distance(l1, l2));
-                                // return;
-
                                 this.map.on('click', (event) => {
-                                    let sum = 0;
-                                    let count = 0;
-                                    let wasIn = false;
 
                                     // if analyze on click then get nearest objects
                                     if (this.props.isAvailOnClick) {
                                         this.nearestObj(event);
                                     }
-
-                                    // this.circles.forEach((circle) => {
-                                    //     let dist = this.map.distance(event.latlng, circle._latlng);
-                                    //     let isIn = dist <= circle.options.radius;
-
-                                    //     if (isIn) {
-                                    //         wasIn = true;
-                                    //         sum += (circle.square || 0); // на всякий случай, по идее 0 всегда
-                                    //         count += 1;
-                                    //     }
-
-                                    // });
-
-                                    // if (wasIn) {
-                                    //     DG.popup()
-                                    //         .setLatLng(event.latlng)
-                                    //         .setContent(`<div><div>Объектов в доступе: ${count}</div><div>Общая площадь, кв.м.: ${sum}</div></div>`)
-                                    //         .openOn(this.map);
-                                    // }
                                 })
                             }
 
@@ -343,7 +505,10 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
 
                                         let rgbStr = getColorBySquare(obj.square);
                                         marker.on('click', function () {
-                                            let circle = DG.circle([obj.lat, obj.lng], { radius, color: rgbStr }).addTo(that.map);
+                                            let circle = DG.circle([obj.lat, obj.lng], {
+                                                radius,
+                                                color: rgbStr
+                                            }).addTo(that.map);
                                             circle.square = obj.square;
 
                                             that.circles.push(circle);
@@ -379,9 +544,13 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                                             let poly;
                                             if (1) { // district.coords.length > 1
                                                 console.log(district);
-                                                poly = DG.polygon(district.coords, { color: rgbStr }).addTo(this.map);
+                                                poly = DG.polygon(district.coords, {color: rgbStr}).addTo(this.map);
 
-                                                let { countSpecific, sumSpecific, countRolesSpecific } = getSportStats(this.props.objs, this.props.districts, sport_objects_district, i);
+                                                let {
+                                                    countSpecific,
+                                                    sumSpecific,
+                                                    countRolesSpecific
+                                                } = getSportStats(this.props.objs, this.props.districts, sport_objects_district, i);
 
                                                 // title="id: ${obj.id}"
                                                 let text =
@@ -446,7 +615,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                                                             [row.lat + shiftLat, row.lng - shiftLng]
                                                         ];
 
-                                                        let poly = DG.polygon(coords, { color: row.color }).addTo(this.map);
+                                                        let poly = DG.polygon(coords, {color: row.color}).addTo(this.map);
                                                         // poly.bindPopup(row.lat + '-' + row.lng);
 
                                                         poly.addTo(this.map);
@@ -465,205 +634,5 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                 </div>
             </>
         );
-    }
-
-    nearestObj(event: any) {
-        this.circles.forEach(circle => {
-            circle.removeFrom(this.map);
-        })
-
-        this.circles = [];
-
-        this.nearestMarkers.forEach(marker => {
-            marker.removeFrom(this.map);
-        });
-
-        this.nearestMarkers = [];
-
-        if (this.intersectPoly) {
-            this.intersectPoly.removeFrom(this.map);
-        }
-
-        let marker = DG.marker({ ...event.latlng, opacity: 0.1 }).addTo(this.map);
-        let popupContent = '';
-        marker.bindPopup(popupContent);
-
-        this.nearestMarkers.push(marker);
-
-        let minLat = +Infinity;
-        let minLng = +Infinity;
-        let maxLat = 0;
-        let maxLng = 0;
-        let objsFound = [];
-
-        // const popups = DG.featureGroup();
-        this.props.objs.forEach((obj, pos) => {
-
-            const distance = this.map.distance(event.latlng, {
-                lat: obj.lat,
-                lng: obj.lng,
-            })
-
-            let radii = [5000, 3000, 1000, 500];
-            let radius = radii[obj.affinityId - 1];
-
-            if (distance <= radius) {
-                /*
-                // let popupContent = this.formPopupInnerHTML(obj);
-
-                // DG.popup()
-                //     .setLatLng([obj.lat, obj.lng])
-                //     .setContent(popupContent)
-                //     .addTo(popups);
-                */
-
-                let marker = DG.marker({ lat: obj.lat, lng: obj.lng }).addTo(this.map);
-
-                let popupContent = this.formPopupInnerHTML(obj);
-                marker.bindPopup(popupContent);
-
-                let radii = [5000, 3000, 1000, 500];
-                let radius = radii[obj.affinityId - 1];
-
-                let rgbStr = getColorBySquare(obj.square);
-                marker.on('click', () => {
-                    let circle = DG.circle([obj.lat, obj.lng], { radius, color: rgbStr }).addTo(this.map);
-                    circle.square = obj.square;
-
-                    this.circles.push(circle);
-                });
-
-                this.nearestMarkers.push(marker);
-
-                objsFound.push({ ...obj, radius })
-
-                if (obj.lat < minLat) {
-                    minLat = obj.lat;
-                }
-
-                if (obj.lat > maxLat) {
-                    maxLat = obj.lat;
-                }
-
-                if (obj.lng < minLng) {
-                    minLng = obj.lng;
-                }
-
-                if (obj.lng > maxLng) {
-                    maxLng = obj.lng;
-                }
-            }
-        });
-
-        let amendLat = 0.05;
-        let amendLng = 0.05 * 2;
-
-        let startLat = minLat - amendLat;
-        let startLng = minLng - amendLng;
-
-        let obj1 = { lat: startLat, lng: startLng };
-        let obj2 = { lat: maxLat + amendLat, lng: maxLng + amendLng };
-        
-        // DG.marker(obj1).addTo(this.map); // угловые
-        // DG.marker(obj2).addTo(this.map);
-
-        if (objsFound.length) {
-            const STEP_LAT = 0.0001; // ~ 10 м
-            const STEP_LNG = STEP_LAT * 2; // ~ 100 м
-
-            let i = 0;
-            let lat;
-            let lng;
-
-            let points = [];
-            do {
-                let j = 0;
-
-                do {
-                    lat = startLat + i * STEP_LAT;
-                    lng = startLng + j * STEP_LNG;
-
-                    let isIn = true;
-                    for (let k = 0; k < objsFound.length; k++) {
-                        let d = this.map.distance(
-                            {
-                                lat: objsFound[k].lat,
-                                lng: objsFound[k].lng
-                            },
-                            {
-                                lat,
-                                lng
-                            }
-                        );
-
-                        if (d > objsFound[k].radius) {
-                            isIn = false;
-                            break;
-                        }
-                    }
-
-                    if (isIn) {
-                        points.push([lat, lng]);
-                    }
-
-                    j += 1;
-                } while (lng <= maxLng + amendLng);
-
-                i += 1;
-            } while (lat <= maxLat + amendLat);
-
-            if (points.length) {
-
-                let coords = hull(points);
-                
-                let sumSquare = 0;
-                let zoneTypeIds = [];
-                let sportIds = [];
-
-                objsFound.forEach((obj) => {
-                    sumSquare += obj.square;
-
-                    obj.parts.forEach(part => {
-                        zoneTypeIds.push(part.sportzonetypeId);
-                        sportIds = sportIds.concat(part.roles);
-                    })
-                });
-
-                zoneTypeIds = array_unique(zoneTypeIds);
-                sportIds = array_unique(sportIds);
-
-                let zoneTypes = zoneTypeIds.map(id => spr_zonetype[id]);
-                let sports = sportIds.map(id => spr_sport[id]);
-
-                let rgbStr = getColorBySquare(sumSquare);
-                this.intersectPoly = DG.polygon(coords, { color: rgbStr }).addTo(this.map);
-
-                let popupContent = 
-                `
-                <div class="popup">
-                    <div class="fieldCont">
-                        Находится в зоне доступности для кол-ва объектов: '+ ${objsFound.length}
-                    </div>
-                    <div class="fieldCont">
-                        Суммарная площадь: '+ ${sumSquare || '-'}
-                    </div>
-                    <div class="fieldCont">
-                        <div class="label">Типы спорт. зон</div>
-                        <div class="sports">
-                            ${zoneTypes.map((name) => `<div class="value">${name}</div>`).join('\n')}
-                        </div>
-                    </div>
-                    <div class="fieldCont">
-                        <div class="label">Виды спорта</div>
-                        <div class="sports">
-                            ${sports.map((name) => `<div class="value">${name}</div>`).join('\n')}
-                        </div>
-                    </div>
-                </div>
-                `;
-
-                this.intersectPoly.bindPopup(popupContent);
-            }
-        }
     }
 }

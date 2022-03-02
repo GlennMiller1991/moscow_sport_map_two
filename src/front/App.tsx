@@ -88,7 +88,10 @@ function App() {
         }
     }, [filter])
     const applyFilter = useCallback((objs: IObj[], filter: filterType) => {
-        console.log('from applyFilter', filter)
+        // filtering before every render
+        // Rendering on each change select value and blur input field
+        // If objects are mock and hard coded there is no difference between
+        // old and new filter behavior
         return objs.filter((obj) => {
             let res = true;
 
