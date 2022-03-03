@@ -670,6 +670,7 @@ export const MapMainTwo: React.FC<MapMainTwoProps> = React.memo((props) => {
         const [actualState, setActualState] = useState({
             isAvailOnClick: props.isAvailOnClick,
             objs: props.objs,
+            emitter: props.emitter
         })
         let circles = []
         let nearestMarkers = []
@@ -913,7 +914,6 @@ export const MapMainTwo: React.FC<MapMainTwoProps> = React.memo((props) => {
             const marker = DG.marker([...latlng], {icon: myIcon, opacity: 0.6}).addTo(map);
             nearestMarkers.push(marker)
         }
-
         const removeObjectsFromMap = (map: any) => {
             circles.forEach(circle => {
                 circle.removeFrom(map);
@@ -940,8 +940,12 @@ export const MapMainTwo: React.FC<MapMainTwoProps> = React.memo((props) => {
         }
 
         useEffect(() => {
-            setActualState({isAvailOnClick: props.isAvailOnClick, objs: props.objs})
-        }, [props.isAvailOnClick, props.objs])
+            setActualState({...actualState, isAvailOnClick: props.isAvailOnClick})
+        }, [props.isAvailOnClick])
+        useEffect(() => {
+            setActualState({...actualState, objs: props.objs})
+        }, [props.objs])
+
         return (
             <>
                 <div id="map"

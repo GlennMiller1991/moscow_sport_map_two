@@ -68,15 +68,15 @@ export const Sidebar: React.FC<SideBarProps> = ({
                 <Button onClick={onButtonPressHandler}
                         currentState={buttonsState.isPopulationLayer}
                         keyName={'isPopulationLayer'}
-                        text={'плотность населения'}/>
+                        text={'Показать плотность населения'}/>
                 <Button onClick={onButtonPressHandler}
                         currentState={buttonsState.isCoverNet}
                         keyName={'isCoverNet'}
-                        text={'сетку охвата'}/>
+                        text={'Показать сетку охвата'}/>
                 <Button onClick={onButtonPressHandler}
                         currentState={buttonsState.isAvailOnClick}
                         keyName={'isAvailOnClick'}
-                        text={'режим анализа по клику'}/>
+                        text={'Анализ по клику'}/>
 
                 <img src={fitnessGirl} alt="" className={styles.fitnessGirl}/>
             </div>
