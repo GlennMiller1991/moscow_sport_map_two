@@ -155,6 +155,7 @@ const clusterParams = {
 export default class MapMain extends React.Component<IMapMainProps, IMapMainState> {
     map;
     cluster;
+    event;
 
     circles = [];
     polys = [];
@@ -249,7 +250,27 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         return true;
     }
 
-    removeObjectsFromMap() {
+    getMarkers(objs: IObj[]) {
+        let markers = []
+        objs.forEach((obj, pos) => {
+
+            const distance = this.map.distance(this.event.latlng, {
+                lat: obj.lat,
+                lng: obj.lng,
+            })
+
+            let radii = [5000, 3000, 1000, 500];
+            let radius = radii[obj.affinityId - 1];
+
+            if (distance <= radius) {
+                markers.push(DG.marker({lat: obj.lat, lng: obj.lng}))
+            }
+        })
+        return markers
+    }
+
+    removeObjectsFromMap(circles ?: any, nearestMarkers ?: any, intersectPoly ?: any) {
+        if (circles && !this.circles.length) this.circles = circles
         this.circles.forEach(circle => {
             setTimeout(() => {
                 circle.removeFrom(this.map);
@@ -257,6 +278,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         })
         this.circles = [];
 
+        if (nearestMarkers && !this.nearestMarkers.length) this.nearestMarkers = nearestMarkers
         this.nearestMarkers.forEach(marker => {
             setTimeout(() => {
                 marker.removeFrom(this.map);
@@ -264,11 +286,18 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         });
         this.nearestMarkers = [];
 
+        if (intersectPoly && !this.intersectPoly) this.intersectPoly = intersectPoly
         if (this.intersectPoly) {
+            this.intersectPoly.removeFrom(this.map);
+        } else if (intersectPoly) {
             this.intersectPoly.removeFrom(this.map);
         }
     }
-    setMyMarkerOnMap(event: any) {
+
+    setMyMarkerOnMap(event
+                         :
+                         any
+    ) {
         let myIcon = DG.icon({
             iconUrl: arrow,
             iconSize: [30, 30]
@@ -280,6 +309,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         marker.bindPopup(popupContent);
         this.nearestMarkers.push(marker);
     }
+
     getZoneInfo(objsFound) {
         let sumSquare = 0;
         let zoneTypeIds = [];
@@ -303,7 +333,11 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         let rgbStr = getColorBySquare(sumSquare);
         return {zoneTypes, sports, rgbStr, sumSquare}
     }
-    nearestObj(event: any) {
+
+    nearestObj(event
+                   :
+                   any
+    ) {
         let minLat = +Infinity;
         let minLng = +Infinity;
         let maxLat = 0;
@@ -452,6 +486,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
             }
         })
     }
+
     render() {
         console.log('from main')
         return (
@@ -475,6 +510,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
 
                                     // if analyze on click then get nearest objects
                                     if (this.props.isAvailOnClick) {
+                                        this.event = event
                                         this.removeObjectsFromMap()
                                         this.setMyMarkerOnMap(event)
                                         this.nearestObj(event);
@@ -485,6 +521,12 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                             // onClick remove previous layer and get new cluster with leaflet
                             // on each new obj get html layout and bind it to click on obj
                             if (this.props.isAvailOnClick) {
+                                if (this.prevProps?.objs !== this.props.objs && this.event) {
+                                    let markers = this.getMarkers(this.prevProps.objs)
+                                    this.removeObjectsFromMap(markers)
+                                    this.setMyMarkerOnMap(this.event)
+                                    this.nearestObj(this.event)
+                                }
                                 if (this.cluster) {
                                     this.map.removeLayer(this.cluster);
                                 }
