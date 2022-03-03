@@ -4,6 +4,7 @@ import sport_objects_district from './mock/sport_objects_district.json';
 import hull from 'hull.js';
 import arrow from './../front/Tilda_Icons_22_Sport/arrow.png'
 
+
 import {getInterjacentColorStr, IDistrict, IObj, IRGBA} from '../mid/misc/types';
 
 import {
@@ -270,19 +271,20 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
     }
 
     removeObjectsFromMap(circles ?: any, nearestMarkers ?: any, intersectPoly ?: any) {
+
+        if (this.cluster) {
+            this.map.removeLayer(this.cluster);
+        }
+
         if (circles && !this.circles.length) this.circles = circles
         this.circles.forEach(circle => {
-            setTimeout(() => {
                 circle.removeFrom(this.map);
-            }, 0)
         })
         this.circles = [];
 
         if (nearestMarkers && !this.nearestMarkers.length) this.nearestMarkers = nearestMarkers
         this.nearestMarkers.forEach(marker => {
-            setTimeout(() => {
                 marker.removeFrom(this.map);
-            }, 0)
         });
         this.nearestMarkers = [];
 
@@ -294,20 +296,14 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         }
     }
 
-    setMyMarkerOnMap(event
-                         :
-                         any
-    ) {
+    setMyMarkerOnMap(event: any) {
         let myIcon = DG.icon({
             iconUrl: arrow,
             iconSize: [30, 30]
         });
         let latlng = [event.latlng.lat, event.latlng.lng]
         let marker = DG.marker([...latlng], {icon: myIcon, opacity: 0.6}).addTo(this.map);
-        let popupContent = '';
-        // Why is this here?
-        marker.bindPopup(popupContent);
-        this.nearestMarkers.push(marker);
+        this.nearestMarkers.push(marker)
     }
 
     getZoneInfo(objsFound) {
@@ -334,18 +330,16 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
         return {zoneTypes, sports, rgbStr, sumSquare}
     }
 
-    nearestObj(event
-                   :
-                   any
-    ) {
+    nearestObj(event: any) {
         let minLat = +Infinity;
         let minLng = +Infinity;
         let maxLat = 0;
         let maxLng = 0;
         let objsFound: Array<IObj & { radius: number }> = [];
 
+        let cluster = DG.markerClusterGroup(clusterParams);
+        this.cluster = cluster
         this.props.objs.forEach((obj, pos) => {
-
             const distance = this.map.distance(event.latlng, {
                 lat: obj.lat,
                 lng: obj.lng,
@@ -356,21 +350,22 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
 
             if (distance <= radius) {
                 setTimeout(() => {
-                    let marker = DG.marker({lat: obj.lat, lng: obj.lng}).addTo(this.map);
+                    let marker = DG.marker({lat: obj.lat, lng: obj.lng})
+                    marker.on('click', () => {
+                        console.log('from popup')
+                        let popupContent = this.formPopupInnerHTML(obj);
+                        marker.bindPopup(popupContent).openPopup();
+                        let circle = DG.circle([obj.lat, obj.lng], {radius, color: rgbStr}).addTo(this.map);
+                        circle.square = obj.square;
+                        this.circles.push(circle);
+                    })
 
-                    let popupContent = this.formPopupInnerHTML(obj);
-                    marker.bindPopup(popupContent);
-
+                    cluster.addLayer(marker)
+                    this.map.addLayer(cluster)
                     let radii = [5000, 3000, 1000, 500];
                     let radius = radii[obj.affinityId - 1];
 
                     let rgbStr = getColorBySquare(obj.square);
-                    marker.on('click', () => {
-                        let circle = DG.circle([obj.lat, obj.lng], {radius, color: rgbStr}).addTo(this.map);
-                        circle.square = obj.square;
-
-                        this.circles.push(circle);
-                    });
 
                     this.nearestMarkers.push(marker);
                     objsFound.push({...obj, radius})
@@ -622,6 +617,7 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                                                 <div class="fieldCont">
                                                     <div class="label">Кол-во видов спортивных услуг на 100000 населения</div>
                                                     <div class="value">${countRolesSpecific}</div>
+                                                    <F/>
                                                 </div>
                                                 `;
                                                 }
