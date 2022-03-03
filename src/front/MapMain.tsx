@@ -15,7 +15,7 @@ import {getSportStats, isInMoscow} from '../mid/misc/helpers';
 import {distanceLatLng} from '../mid/lib/geom';
 import {shadowScreen, unshadowScreen} from './funcBro';
 import {array_unique} from '../mid/lib/func';
-import {useEffect, useState} from "react";
+import {createFactory, useCallback, useEffect, useRef, useState} from "react";
 
 async function calcNet(objs: IObj[]) {
     const GRID_SIZE_LAT = 100;
@@ -667,20 +667,87 @@ export const MapMainTwo: React.FC<MapMainTwoProps> = React.memo((props) => {
 
         //state
         const [map, setMap] = useState(null)
-        const [isAvailOnClick, setIsAvailOnClick] = useState(true)
-        const [intersectPoly, setIntersectPoly] = useState(null)
+        const [actualState, setActualState] = useState({
+            isAvailOnClick: props.isAvailOnClick,
+            objs: props.objs,
+        })
         let circles = []
         let nearestMarkers = []
+        let intersectPoly
+
 
         //callbacks
-        const nearestObj = (event: any) => {
-            // let minLat = +Infinity;
-            // let minLng = +Infinity;
-            // let maxLat = 0;
-            // let maxLng = 0;
-            // let objsFound: Array<IObj & { radius: number }> = [];
+        const formPopupInnerHTML = (obj: IObj) => {
+            let affinityName = spr_affinity[obj.affinityId];
 
-            props.objs.forEach((obj, pos) => {
+            let res = `
+            <div class="popup" title="id: ${obj.id}">
+                <!-- div class="fieldCont">
+                    ${obj.lat} - ${obj.lng}
+                </div -->
+                <div class="fieldCont">
+                    <div class="label">Наименование спортивного объекта</div>
+                    <div class="value">${obj.name}</div>
+                </div>
+                <div class="fieldCont">
+                    <div class="label">Ведомственная принадлежность</div>
+                    <div class="value">${obj.org || '-'}</div>
+                </div>
+                <div class="fieldCont">
+                    <div class="label">Общая площадь, кв.м.</div>
+                    <div class="value">${obj.square || '-'}</div>
+                </div>
+                <div class="section">`;
+
+            obj?.parts.forEach((part, i) => {
+                let zonetypeName = spr_zonetype[part.sportzonetypeId];
+
+                if (i) {
+                    res += `<div class="preborder"></div>`;
+                }
+
+                res +=
+                    `
+                    <div class="fieldCont">
+                        <div class="label">Спортивная зона ${i + 1}</div>
+                        <div class="value">${part.sportzone}</div>
+                    </div>
+                    <div class="fieldCont">
+                        <div class="label">Тип</div>
+                        <div class="value">${zonetypeName || '-'}</div>
+                    </div>
+                    <div class="fieldCont">
+                        <div class="label">Площадь, кв.м.</div>
+                        <div class="value">${part.square || '-'}</div>
+                    </div>
+                    <div class="fieldCont">
+                        <div class="label">Виды спорта</div>
+                        <div class="sports">
+                            ${part.roles.map((sportId) => `<div class="value">${spr_sport[sportId]}</div>`).join('\n')}
+                        </div>
+                    </div>
+                `;
+
+            });
+
+            res += `
+            </div>
+            <div class="fieldCont">
+                    <div class="label">Доступность</div>
+                    <div class="value">${affinityName}</div>
+                </div>
+            </div>
+        `;
+
+            return res;
+        }
+        const nearestObj = (event: any, map: any, objs: IObj[]) => {
+            let minLat = +Infinity;
+            let minLng = +Infinity;
+            let maxLat = 0;
+            let maxLng = 0;
+            let objsFound: Array<IObj & { radius: number }> = [];
+            objs.forEach((obj, pos) => {
                 const distance = map.distance(event.latlng, {
                     lat: obj.lat,
                     lng: obj.lng,
@@ -690,19 +757,164 @@ export const MapMainTwo: React.FC<MapMainTwoProps> = React.memo((props) => {
                 let radius = radii[obj.affinityId - 1];
 
                 if (distance <= radius) {
-                    DG.marker({lat: obj.lat, lng: obj.lng}).addTo(map);
+                    let marker = DG.marker({lat: obj.lat, lng: obj.lng}).addTo(map);
+                    let popupContent = formPopupInnerHTML(obj);
+                    marker.bindPopup(popupContent);
+
+                    let radii = [5000, 3000, 1000, 500];
+                    let radius = radii[obj.affinityId - 1];
+
+                    let rgbStr = getColorBySquare(obj.square);
+                    marker.on('click', () => {
+                        let circle = DG.circle([obj.lat, obj.lng], {radius, color: rgbStr}).addTo(map);
+                        circle.square = obj.square;
+
+                        circles.push(circle);
+                    });
+
+                    nearestMarkers.push(marker);
+                    objsFound.push({...obj, radius})
+
+                    if (obj.lat < minLat) {
+                        minLat = obj.lat;
+                    }
+                    if (obj.lat > maxLat) {
+                        maxLat = obj.lat;
+                    }
+                    if (obj.lng < minLng) {
+                        minLng = obj.lng;
+                    }
+                    if (obj.lng > maxLng) {
+                        maxLng = obj.lng;
+                    }
+                    nearestMarkers.push(marker)
                 }
             })
+            let amendLat = 0.05;
+            let amendLng = 0.05 * 2;
+
+            let startLat = minLat - amendLat;
+            let startLng = minLng - amendLng;
+            if (objsFound.length) {
+                const STEP_LAT = 0.0001; // ~ 10 м
+                const STEP_LNG = STEP_LAT * 2; // ~ 100 м
+
+                let i = 0;
+                let lat;
+                let lng;
+
+                let points = [];
+                do {
+                    let j = 0;
+
+                    do {
+                        lat = startLat + i * STEP_LAT;
+                        lng = startLng + j * STEP_LNG;
+
+                        // for each obj in found objs calculate
+                        // distance between current latlng. Why?
+                        // If dist-e greater then obj radius
+                        // then isIn turn on false and break loop
+                        // only when all objs in accessing point go to array
+                        let isIn = true;
+                        for (let k = 0; k < objsFound.length; k++) {
+                            let d = map.distance(
+                                {
+                                    lat: objsFound[k].lat,
+                                    lng: objsFound[k].lng
+                                },
+                                {
+                                    lat,
+                                    lng
+                                }
+                            );
+
+                            if (d > objsFound[k].radius) {
+                                isIn = false;
+                                break;
+                            }
+                        }
+
+                        // if isIn true push point to points
+                        if (isIn) {
+                            points.push([lat, lng]);
+                        }
+
+                        j += 1;
+                    } while (lng <= maxLng + amendLng);
+
+                    i += 1;
+                } while (lat <= maxLat + amendLat);
+
+                if (points.length) {
+
+                    let coords = hull(points);
+
+                    let zoneRes = getZoneInfo(objsFound)
+                    intersectPoly = DG.polygon(coords, {color: zoneRes.rgbStr}).addTo(map);
+
+                    let popupContent =
+                        `
+                <div class="popup">
+                    <div class="fieldCont">
+                        Находится в зоне доступности для кол-ва объектов: '+ ${objsFound.length}
+                    </div>
+                    <div class="fieldCont">
+                        Суммарная площадь: '+ ${zoneRes.sumSquare || '-'}
+                    </div>
+                    <div class="fieldCont">
+                        <div class="label">Типы спорт. зон</div>
+                        <div class="sports">
+                            ${zoneRes.zoneTypes.map((name) => `<div class="value">${name}</div>`).join('\n')}
+                        </div>
+                    </div>
+                    <div class="fieldCont">
+                        <div class="label">Виды спорта</div>
+                        <div class="sports">
+                            ${zoneRes.sports.map((name) => `<div class="value">${name}</div>`).join('\n')}
+                        </div>
+                    </div>
+                </div>
+                `;
+
+                    intersectPoly.bindPopup(popupContent);
+                }
+            }
         }
-        const setMyMarkerOnMap = (event: any) => {
+        const getZoneInfo = (objsFound) => {
+            let sumSquare = 0;
+            let zoneTypeIds = [];
+            let sportIds = [];
+
+            objsFound.forEach((obj) => {
+                sumSquare += obj.square;
+
+                obj.parts.forEach(part => {
+                    zoneTypeIds.push(part.sportzonetypeId);
+                    sportIds = sportIds.concat(part.roles);
+                })
+            });
+
+            zoneTypeIds = array_unique(zoneTypeIds);
+            sportIds = array_unique(sportIds);
+
+            let zoneTypes = zoneTypeIds.map(id => spr_zonetype[id]);
+            let sports = sportIds.map(id => spr_sport[id]);
+
+            let rgbStr = getColorBySquare(sumSquare);
+            return {zoneTypes, sports, rgbStr, sumSquare}
+        }
+        const setMyMarkerOnMap = (event: any, map: any) => {
             let myIcon = DG.icon({
                 iconUrl: arrow,
                 iconSize: [30, 30]
             });
             let latlng = [event.latlng.lat, event.latlng.lng]
-            DG.marker([...latlng], {icon: myIcon, opacity: 0.6}).addTo(map);
+            const marker = DG.marker([...latlng], {icon: myIcon, opacity: 0.6}).addTo(map);
+            nearestMarkers.push(marker)
         }
-        const removeObjectsFromMap = () => {
+
+        const removeObjectsFromMap = (map: any) => {
             circles.forEach(circle => {
                 circle.removeFrom(map);
             })
@@ -717,37 +929,39 @@ export const MapMainTwo: React.FC<MapMainTwoProps> = React.memo((props) => {
                 intersectPoly.removeFrom(map);
             }
         }
-        useEffect(() => {
-            setIsAvailOnClick(props.isAvailOnClick)
-        }, [props.isAvailOnClick])
-        useEffect(() => {
-            if (!map) {
-                let map = DG.map('map', {
-                    'center': [55.754753, 37.620861],
-                    'zoom': 11
-                })
-                setMap(map)
-            }
-        }, [])
 
+        const actionsWithActualIsAvailOnClick = (event, map) => (actualState) => {
+            if (actualState.isAvailOnClick) {
+                removeObjectsFromMap(map)
+                setMyMarkerOnMap(event, map)
+                nearestObj(event, map, actualState.objs)
+            }
+            return actualState
+        }
+
+        useEffect(() => {
+            setActualState({isAvailOnClick: props.isAvailOnClick, objs: props.objs})
+        }, [props.isAvailOnClick, props.objs])
         return (
             <>
                 <div id="map"
                      style={{width: '100%', height: '100%'}}
                      ref={(node) => {
                          if (node) {
-                             if (map) {
-                                 map.on('click', (event: any) => {
-                                     if (isAvailOnClick) {
-                                         removeObjectsFromMap()
-                                         setMyMarkerOnMap(event)
-                                         nearestObj(event)
-                                     }
+                             if (!map) {
+                                 let mapElem = DG.map('map', {
+                                     'center': [55.754753, 37.620861],
+                                     'zoom': 11
                                  })
+                                 mapElem.on('click', (event) => {
+                                     setActualState(actionsWithActualIsAvailOnClick(event, mapElem))
+                                 })
+                                 setMap(mapElem)
+                             } else {
+                                 removeObjectsFromMap(map)
                              }
                          }
-                     }}
-                />
+                     }}/>
             </>
         )
     }
