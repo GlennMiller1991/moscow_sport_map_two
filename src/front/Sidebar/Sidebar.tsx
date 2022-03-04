@@ -10,20 +10,18 @@ import {Button} from "./Button/Button";
 import {SearchSelect} from "./SearchSelect/SearchSelect";
 import {SearchBar} from "./SearchBar/SearchBar";
 import {useDispatch} from "react-redux";
-import {updateFilter} from "../state/actions";
+import {updateButtons, updateFilter} from "../state/actions";
 import {buttonsType, filterType} from "../state/appReducer";
 
 interface SideBarProps {
     emitter: EventEmitter,
     buttonsState: buttonsType,
-    onButtonPressHandler: (obj: Partial<buttonsType>) => void,
 }
 
 export const Sidebar: React.FC<SideBarProps> = ({
-                                                               onButtonPressHandler,
-                                                               emitter,
-                                                               buttonsState,
-                                                           }) => {
+                                                    emitter,
+                                                    buttonsState,
+                                                }) => {
     //state
     const [sideBarVisibility, setSideBarVisibility] = useState(true)
     const dispatch = useDispatch()
@@ -31,6 +29,10 @@ export const Sidebar: React.FC<SideBarProps> = ({
     const onBlurHandlerC = useCallback((newFilter: Partial<filterType>) => {
         dispatch(updateFilter(newFilter))
     }, [])
+    const onButtonPressHandler = useCallback((buttonsValue: Partial<buttonsType>) => {
+        dispatch(updateButtons(buttonsValue))
+    }, [])
+
 
     //callbacks
     const toggleSideBar = useCallback(() => {

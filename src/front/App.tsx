@@ -2,7 +2,6 @@ import * as React from 'react';
 import EventEmitter from 'events';
 import MapMain from './MapMain';
 import {IObj} from '../mid/misc/types';
-import sprtObjs from './mock/sport_objects.json';
 import districts from './mock/districts.json';
 import './App.scss';
 import {Header} from './Header/Header';
@@ -26,35 +25,15 @@ export interface IFilter {
 
 function App() {
     console.log('from function component')
-    const emitter = new EventEmitter();
 
     //state
-    const [isEntranceRemoved, setIsEntranceRemoved] = useState(false)
+    const emitter = new EventEmitter();
+    const isEntranceRemoved = useSelector<stateType, boolean>(state => state.appState.isEntranceRemoved)
     const filter = useSelector<stateType, filterType>(state => state.appState.filter)
+    const buttonsState = useSelector<stateType, buttonsType>(state => state.appState.buttonsValue)
     const objs = useSelector<stateType, Array<IObj>>(state => state.appState.objs)
 
-    const [buttonsState, setButtonsState] = useState<buttonsType>({
-        isPopulationLayer: false,
-        isAvailOnClick: false,
-        isCoverNet: false,
-    })
-
-
     //callbacks
-    const onButtonPressHandler = useCallback((obj: Partial<buttonsType>) => {
-        let resButtons = {...buttonsState, ...obj}
-        const key = Object.keys(obj)[0]
-        if (obj[key]) {
-            if (key === 'isPopulationLayer') {
-                resButtons['isCoverNet'] = false
-            } else if (key === 'isCoverNet') {
-                resButtons['isPopulationLayer'] = false
-            }
-        }
-
-        setButtonsState(resButtons)
-    }, [buttonsState])
-
     const applyFilter = useCallback((objs: IObj[], filter: filterType) => {
         // filtering before every render
         // Rendering on each change select value and blur input field
@@ -96,14 +75,9 @@ function App() {
             return res;
         });
     }, [])
-    const onEnterClick = useCallback(() => {
-        setIsEntranceRemoved(true)
-    }, [])
 
     if (!isEntranceRemoved) {
-        return (<LoginPage
-            callback={onEnterClick}
-        />);
+        return (<LoginPage/>);
     } else {
         return (
             <>
@@ -126,10 +100,8 @@ function App() {
                         filter={filter}
                     />
                 </div>
-                <Sidebar
-                    emitter={emitter}
-                    buttonsState={buttonsState}
-                    onButtonPressHandler={onButtonPressHandler}
+                <Sidebar emitter={emitter}
+                         buttonsState={buttonsState}
                 />
                 <Footer/>
             </>

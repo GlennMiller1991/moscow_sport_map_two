@@ -1,5 +1,12 @@
 import {IObj} from "../../mid/misc/types";
-import {actionsType, UPDATE_FILTER, UPLOAD_OBJECTS} from "./actions";
+import {
+    actionsType,
+    REGISTER_FIRST_ENTRANCE,
+    UPDATE_BUTTONS,
+    UPDATE_FILTER,
+    UPDATE_INITIALIZING,
+    UPLOAD_OBJECTS
+} from "./actions";
 
 //types
 export type buttonsType = {
@@ -17,7 +24,11 @@ export type filterType = {
 }
 export type appStateType = typeof initialState
 
+export type isAppInitializedType = 'none' | 'userObjects' | 'demo' | 'createObjects'
+
 const initialState = {
+    isAppInitialized: 'none' as isAppInitializedType,
+    isEntranceRemoved: false as boolean,
     objs: [] as unknown as Array<IObj>,
     filter: {
         affinityId: 0,
@@ -36,6 +47,23 @@ const initialState = {
 
 export const appReducer = (state: appStateType = initialState, action: actionsType) => {
     switch(action.type) {
+        case UPDATE_BUTTONS:
+            const obj = action.payload.buttons
+            let resButtons = {...state.buttonsValue, ...obj}
+            const key = Object.keys(obj)[0]
+            if (obj[key]) {
+                if (key === 'isPopulationLayer') {
+                    resButtons['isCoverNet'] = false
+                } else if (key === 'isCoverNet') {
+                    resButtons['isPopulationLayer'] = false
+                }
+            }
+            return {
+                ...state,
+                buttonsValue: {
+                    ...resButtons,
+                }
+            }
         case UPDATE_FILTER:
             const newFilter = action.payload.filter
             if (state.filter[Object.keys(newFilter)[0]] !== newFilter[Object.keys(newFilter)[0]]) {
@@ -45,6 +73,8 @@ export const appReducer = (state: appStateType = initialState, action: actionsTy
                 }
             } else return state
         case UPLOAD_OBJECTS:
+        case UPDATE_INITIALIZING:
+        case REGISTER_FIRST_ENTRANCE:
             return {
                 ...state,
                 ...action.payload,
