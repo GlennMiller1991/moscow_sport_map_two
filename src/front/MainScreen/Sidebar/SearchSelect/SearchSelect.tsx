@@ -1,7 +1,7 @@
 import React from "react";
 import styles from "../Sidebar.module.scss";
 import {Select} from "antd";
-import {spr_zonetype} from "../../mock/sprs";
+import {spr_zonetype} from "../../../mock/sprs";
 import {searchBarPropsType} from "../SearchBar/SearchBar";
 
 

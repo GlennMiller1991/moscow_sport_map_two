@@ -3,15 +3,15 @@ import EventEmitter from 'events';
 import React, {useCallback, useState} from "react";
 import styles from "./Sidebar.module.scss"
 
-import {spr_affinity, spr_sport, spr_zonetype,} from '../mock/sprs';
+import {spr_affinity, spr_sport, spr_zonetype,} from '../../mock/sprs';
 import fitnessGirl from './fitnessGirl.png';
 import Line from './Line.png';
 import {Button} from "./Button/Button";
 import {SearchSelect} from "./SearchSelect/SearchSelect";
 import {SearchBar} from "./SearchBar/SearchBar";
 import {useDispatch} from "react-redux";
-import {updateButtons, updateFilter} from "../state/actions";
-import {buttonsType, filterType} from "../state/appReducer";
+import {updateButtons, updateFilter} from "../../state/actions";
+import {buttonsType, filterType} from "../../state/appReducer";
 
 interface SideBarProps {
     emitter: EventEmitter,

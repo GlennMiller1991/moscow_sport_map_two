@@ -26,12 +26,8 @@ export const LoginPage: React.FC = React.memo(() => {
         let url = params.get('path')
 
         if (url) {
-            if (url === 'demo') {
-                batch(() => {
-                    dispatch(updateInitializing('demo'))
-                    dispatch(uploadObjects(sprtObjs as unknown as IObj[]))
-                })
-
+            if (url === 'create') {
+                    dispatch(updateInitializing('createObjects'))
             } else {
                 url = 'https://gist.githubusercontent.com/' + url
                 fetch(url, {})
@@ -48,7 +44,10 @@ export const LoginPage: React.FC = React.memo(() => {
                     })
             }
         } else {
-            dispatch(updateInitializing('demo'))
+            batch(() => {
+                dispatch(updateInitializing('demo'))
+                dispatch(uploadObjects(sprtObjs as unknown as IObj[]))
+            })
         }
     }, [])
     return (

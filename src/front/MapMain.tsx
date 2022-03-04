@@ -519,18 +519,20 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                             if (!this.map) {
 
                                 this.map = DG.map('map', {
-                                    zoom: 16,
+                                    zoom: 11,
                                     center: [55.7, 37.5]
                                 });
-                                const maxCoords = this.getCoordsSquare(this.props.objs)
-                                const bound = [
-                                    [maxCoords.minLat, maxCoords.minLng],
-                                    [maxCoords.maxLat, maxCoords.maxLng],
-                                ]
-                                const southWest = DG.latLng(bound[0][0], bound[0][1])
-                                const northEast = DG.latLng(bound[1][0], bound[1][1])
-                                const bounds = DG.latLngBounds(southWest, northEast)
-                                this.map.fitBounds(bounds);
+                                if (this.props.objs.length) {
+                                    const maxCoords = this.getCoordsSquare(this.props.objs)
+                                    const bound = [
+                                        [maxCoords.minLat, maxCoords.minLng],
+                                        [maxCoords.maxLat, maxCoords.maxLng],
+                                    ]
+                                    const southWest = DG.latLng(bound[0][0], bound[0][1])
+                                    const northEast = DG.latLng(bound[1][0], bound[1][1])
+                                    const bounds = DG.latLngBounds(southWest, northEast)
+                                    this.map.fitBounds(bounds);
+                                }
 
                                 this.map.on('click', (event) => {
 

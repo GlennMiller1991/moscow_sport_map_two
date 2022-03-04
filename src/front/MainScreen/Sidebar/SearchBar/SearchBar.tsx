@@ -1,7 +1,7 @@
 import React, {ChangeEvent, useState} from "react";
 import styles from "../Sidebar.module.scss";
 import {Input} from 'antd';
-import {filterType} from "../../state/appReducer";
+import {filterType} from "../../../state/appReducer";
 
 const {Search} = Input;
 export type searchBarPropsType = {
@@ -10,6 +10,7 @@ export type searchBarPropsType = {
     onBlurHandler?: (obj: Partial<filterType>) => void,
     keyName: string,
     mocks?: any,
+    placeholder?: string
 }
 
 export const SearchBar: React.FC<searchBarPropsType> = React.memo((props) => {
@@ -30,7 +31,7 @@ export const SearchBar: React.FC<searchBarPropsType> = React.memo((props) => {
     return (
         <div className={styles.mix}>
             <div className={styles.text}>{props.text}</div>
-            <Search placeholder={'Введите часть названия'} allowClear style={{width: 300}}
+            <Search placeholder={props.placeholder ? props.placeholder: 'Введите часть названия'} allowClear style={{width: 300}}
                     onChange={onChangeHandler}
                     onBlur={onBlurHandler}
             />
