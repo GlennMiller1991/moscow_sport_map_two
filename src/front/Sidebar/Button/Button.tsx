@@ -1,6 +1,6 @@
-import {buttonsType} from "../../App";
 import React from "react";
 import styles from "../Sidebar.module.scss";
+import {buttonsType} from "../../state/appReducer";
 
 type ButtonPropsType = {
     onClick: (obj: Partial<buttonsType>) => void,

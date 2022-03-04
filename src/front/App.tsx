@@ -11,21 +11,9 @@ import {Sidebar} from './Sidebar/Sidebar';
 import {LoginPage} from './LoginPage/LoginPage';
 import Table from './Table';
 import {useCallback, useState} from "react";
-
-export type buttonsType = {
-    isPopulationLayer: boolean,
-    isCoverNet: boolean,
-    isAvailOnClick: boolean,
-}
-
-export type filterType = {
-    affinityId: number,
-    sportId: number,
-    zonetypeId: number,
-    name: string,
-    org: string,
-    sportzone: string,
-}
+import {buttonsType, filterType} from "./state/appReducer";
+import {useSelector} from "react-redux";
+import {stateType} from "./state/store";
 
 export interface IFilter {
     affinityId?: number,
@@ -43,14 +31,8 @@ function App() {
     //state
     const [isEntranceRemoved, setIsEntranceRemoved] = useState(false)
     const [objs, setObjs] = useState<IObj[]>(sprtObjs as unknown as IObj[])
-    const [filter, setFilter] = useState<filterType>({
-        affinityId: 0,
-        sportId: 0,
-        zonetypeId: 0,
-        name: '',
-        org: '',
-        sportzone: '',
-    })
+    const filter = useSelector<stateType, filterType>(state => state.appState.filter)
+
     const [buttonsState, setButtonsState] = useState<buttonsType>({
         isPopulationLayer: false,
         isAvailOnClick: false,
@@ -72,11 +54,7 @@ function App() {
 
         setButtonsState(resButtons)
     }, [buttonsState])
-    const onBlurHandler = useCallback((obj: Partial<filterType>) => {
-        if (filter[Object.keys(obj)[0]] !== obj[Object.keys(obj)[0]]) {
-            setFilter({...filter, ...obj})
-        }
-    }, [filter])
+
     const applyFilter = useCallback((objs: IObj[], filter: filterType) => {
         // filtering before every render
         // Rendering on each change select value and blur input field
@@ -152,7 +130,6 @@ function App() {
                     emitter={emitter}
                     buttonsState={buttonsState}
                     onButtonPressHandler={onButtonPressHandler}
-                    onBlurHandler={onBlurHandler}
                 />
                 <Footer/>
             </>

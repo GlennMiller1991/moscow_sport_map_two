@@ -6,26 +6,31 @@ import styles from "./Sidebar.module.scss"
 import {spr_affinity, spr_sport, spr_zonetype,} from '../mock/sprs';
 import fitnessGirl from './fitnessGirl.png';
 import Line from './Line.png';
-import {buttonsType, filterType} from "../App";
 import {Button} from "./Button/Button";
 import {SearchSelect} from "./SearchSelect/SearchSelect";
 import {SearchBar} from "./SearchBar/SearchBar";
+import {useDispatch} from "react-redux";
+import {updateFilter} from "../state/actions";
+import {buttonsType, filterType} from "../state/appReducer";
 
 interface SideBarProps {
-    onBlurHandler: (obj: Partial<filterType>) => void,
     emitter: EventEmitter,
     buttonsState: buttonsType,
     onButtonPressHandler: (obj: Partial<buttonsType>) => void,
 }
 
 export const Sidebar: React.FC<SideBarProps> = ({
-                                                               onBlurHandler,
                                                                onButtonPressHandler,
                                                                emitter,
                                                                buttonsState,
                                                            }) => {
     //state
     const [sideBarVisibility, setSideBarVisibility] = useState(true)
+    const dispatch = useDispatch()
+
+    const onBlurHandlerC = useCallback((newFilter: Partial<filterType>) => {
+        dispatch(updateFilter(newFilter))
+    }, [])
 
     //callbacks
     const toggleSideBar = useCallback(() => {
@@ -37,25 +42,25 @@ export const Sidebar: React.FC<SideBarProps> = ({
             className={sideBarVisibility ? `${styles.sidebar}` : `${styles.sidebar} ${styles.sidebarHidden}`}>
             <div className={styles.wrapper}>
                 <SearchBar text={'Название спортивного объекта'}
-                           onBlurHandler={onBlurHandler}
+                           onBlurHandler={onBlurHandlerC}
                            keyName={'name'}/>
                 <SearchBar text={'Ведомственная принадлежность'}
-                           onBlurHandler={onBlurHandler}
+                           onBlurHandler={onBlurHandlerC}
                            keyName={'org'}/>
                 <SearchBar text={'Наименование спортивных зон'}
-                           onBlurHandler={onBlurHandler}
+                           onBlurHandler={onBlurHandlerC}
                            keyName={'sportzone'}/>
                 <SearchSelect text={'Тип спортивной зоны'}
                               keyName={'zonetypeId'}
-                              onBlurHandler={onBlurHandler}
+                              onBlurHandler={onBlurHandlerC}
                               mocks={spr_zonetype}/>
                 <SearchSelect text={'Вид спорта'}
                               keyName={'sportId'}
-                              onBlurHandler={onBlurHandler}
+                              onBlurHandler={onBlurHandlerC}
                               mocks={spr_sport}/>
                 <SearchSelect text={'Доступность'}
                               keyName={'affinityId'}
-                              onBlurHandler={onBlurHandler}
+                              onBlurHandler={onBlurHandlerC}
                               mocks={spr_affinity}/>
 
                 <div className={styles.mix}>

@@ -1,7 +1,7 @@
-import {filterType} from "../../App";
 import React, {ChangeEvent, useState} from "react";
 import styles from "../Sidebar.module.scss";
 import {Input} from 'antd';
+import {filterType} from "../../state/appReducer";
 
 const {Search} = Input;
 export type searchBarPropsType = {

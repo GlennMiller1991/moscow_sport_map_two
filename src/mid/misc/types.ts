@@ -1,4 +1,4 @@
-export interface IObj {
+export type IObj = {
     id: string | number,
     name: string,
     address: string,
