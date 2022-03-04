@@ -9,7 +9,6 @@ import {IObj} from "../../mid/misc/types";
 import {registerFirstEntrance, updateInitializing, uploadObjects} from "../state/actions";
 import {stateType} from "../state/store";
 import {isAppInitializedType} from "../state/appReducer";
-import {useLocation} from "react-router-dom";
 
 export const LoginPage: React.FC = React.memo(() => {
 
@@ -27,7 +26,10 @@ export const LoginPage: React.FC = React.memo(() => {
 
         if (url) {
             if (url === 'demo') {
-                dispatch(updateInitializing('demo'))
+                batch(() => {
+                    dispatch(updateInitializing('demo'))
+                })
+
             } else {
                 url = 'https://gist.githubusercontent.com/' + url
                 fetch(url, {})

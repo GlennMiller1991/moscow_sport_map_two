@@ -13,7 +13,6 @@ import {useCallback, useState} from "react";
 import {buttonsType, filterType} from "./state/appReducer";
 import {useSelector} from "react-redux";
 import {stateType} from "./state/store";
-import {Route, Routes, useLocation} from "react-router-dom";
 
 export interface IFilter {
     affinityId?: number,
@@ -26,11 +25,12 @@ export interface IFilter {
 
 function App() {
     console.log('from function component')
-    return (
-        <Routes>
-            <Route path={'/'} element={<MainScreen/>}/>
-        </Routes>
-    )
+    const isEntranceRemoved = useSelector<stateType, boolean>(state => state.appState.isEntranceRemoved)
+    if (!isEntranceRemoved) {
+        return <LoginPage/>;
+    } else {
+        return <MainScreen/>
+    }
 }
 
 export default App;
@@ -43,7 +43,6 @@ export const MainScreen: React.FC = React.memo(() => {
     const filter = useSelector<stateType, filterType>(state => state.appState.filter)
     const buttonsState = useSelector<stateType, buttonsType>(state => state.appState.buttonsValue)
     const objs = useSelector<stateType, Array<IObj>>(state => state.appState.objs)
-    const isEntranceRemoved = useSelector<stateType, boolean>(state => state.appState.isEntranceRemoved)
 
     //functions
     const applyFilter = useCallback((objs: IObj[], filter: filterType) => {
@@ -87,36 +86,31 @@ export const MainScreen: React.FC = React.memo(() => {
             return res;
         });
     }, [])
-
-    if (!isEntranceRemoved) {
-        return (<LoginPage/>);
-    } else {
-        return (
-            <>
-                <Header/>
-                <div className="mapContainer">
-                    <MapMain
-                        objs={applyFilter(objs, filter)}
-                        emitter={emitter}
-                        isPopulationLayer={buttonsState.isPopulationLayer}
-                        isCoverNet={buttonsState.isCoverNet}
-                        isAvailOnClick={buttonsState.isAvailOnClick}
-                        districts={districts as any} /* IDistrict[] */
-                        sportId={filter.sportId}
-                    />
-                </div>
-                <div style={{clear: 'both'}}/>
-                <div className="analytics">
-                    <Table
-                        objs={objs}
-                        filter={filter}
-                    />
-                </div>
-                <Sidebar emitter={emitter}
-                         buttonsState={buttonsState}
+    return (
+        <>
+            <Header/>
+            <div className="mapContainer">
+                <MapMain
+                    objs={applyFilter(objs, filter)}
+                    emitter={emitter}
+                    isPopulationLayer={buttonsState.isPopulationLayer}
+                    isCoverNet={buttonsState.isCoverNet}
+                    isAvailOnClick={buttonsState.isAvailOnClick}
+                    districts={districts as any} /* IDistrict[] */
+                    sportId={filter.sportId}
                 />
-                <Footer/>
-            </>
-        );
-    }
+            </div>
+            <div style={{clear: 'both'}}/>
+            <div className="analytics">
+                <Table
+                    objs={objs}
+                    filter={filter}
+                />
+            </div>
+            <Sidebar emitter={emitter}
+                     buttonsState={buttonsState}
+            />
+            <Footer/>
+        </>
+    );
 })
