@@ -9,6 +9,7 @@ import {IObj} from "../../mid/misc/types";
 import {registerFirstEntrance, updateInitializing, uploadObjects} from "../state/actions";
 import {stateType} from "../state/store";
 import {isAppInitializedType} from "../state/appReducer";
+import sprtObjs from './../mock/sport_objects.json';
 
 export const LoginPage: React.FC = React.memo(() => {
 
@@ -28,6 +29,7 @@ export const LoginPage: React.FC = React.memo(() => {
             if (url === 'demo') {
                 batch(() => {
                     dispatch(updateInitializing('demo'))
+                    dispatch(uploadObjects(sprtObjs as unknown as IObj[]))
                 })
 
             } else {
