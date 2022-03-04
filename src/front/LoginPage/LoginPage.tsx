@@ -9,6 +9,7 @@ import {IObj} from "../../mid/misc/types";
 import {registerFirstEntrance, updateInitializing, uploadObjects} from "../state/actions";
 import {stateType} from "../state/store";
 import {isAppInitializedType} from "../state/appReducer";
+import {useLocation} from "react-router-dom";
 
 export const LoginPage: React.FC = React.memo(() => {
 
@@ -20,19 +21,31 @@ export const LoginPage: React.FC = React.memo(() => {
     }
 
     useEffect(() => {
-        let sprtObjsURL
-        sprtObjsURL = 'https://gist.githubusercontent.com/GlennMiller1991/65dfa0423a1ba7f768377a4bff01307c/raw/2a9def9bd9c971a9f3f8983cf4b7d3265fac964d/sport_objects_offset_lat.json'
-        // sprtObjsURL = 'https://gist.githubusercontent.com/GlennMiller1991/1a1b09b9dca08b896a077b7e13a3971a/raw/208f0722bbfab51bea46a77a992aa5255a1cf2a3/sport_objects.json',
+        const search = window.location.search
+        const params = new URLSearchParams(search)
+        let url = params.get('path')
 
-            fetch(sprtObjsURL, {
-            })
-                .then<IObj[]>(response => response.json())
-                .then(array => {
-                    batch(() => {
-                        dispatch(uploadObjects(array))
-                        dispatch(updateInitializing("userObjects"))
+        if (url) {
+            if (url === 'demo') {
+                dispatch(updateInitializing('demo'))
+            } else {
+                url = 'https://gist.githubusercontent.com/' + url
+                fetch(url, {})
+                    .then<IObj[]>(response => response.json())
+                    .then(array => {
+                        batch(() => {
+                            dispatch(uploadObjects(array))
+                            dispatch(updateInitializing("userObjects"))
+                        })
                     })
-                })
+                    .catch(err => {
+                        console.log('Could not download data')
+                        dispatch(updateInitializing('demo'))
+                    })
+            }
+        } else {
+            dispatch(updateInitializing('demo'))
+        }
     }, [])
     return (
         <div className={styles.loginPage}>

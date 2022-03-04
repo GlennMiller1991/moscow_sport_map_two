@@ -13,6 +13,7 @@ import {useCallback, useState} from "react";
 import {buttonsType, filterType} from "./state/appReducer";
 import {useSelector} from "react-redux";
 import {stateType} from "./state/store";
+import {Route, Routes, useLocation} from "react-router-dom";
 
 export interface IFilter {
     affinityId?: number,
@@ -25,15 +26,26 @@ export interface IFilter {
 
 function App() {
     console.log('from function component')
+    return (
+        <Routes>
+            <Route path={'/'} element={<MainScreen/>}/>
+        </Routes>
+    )
+}
+
+export default App;
+
+export const MainScreen: React.FC = React.memo(() => {
+    console.log('from mainScreen')
 
     //state
     const emitter = new EventEmitter();
-    const isEntranceRemoved = useSelector<stateType, boolean>(state => state.appState.isEntranceRemoved)
     const filter = useSelector<stateType, filterType>(state => state.appState.filter)
     const buttonsState = useSelector<stateType, buttonsType>(state => state.appState.buttonsValue)
     const objs = useSelector<stateType, Array<IObj>>(state => state.appState.objs)
+    const isEntranceRemoved = useSelector<stateType, boolean>(state => state.appState.isEntranceRemoved)
 
-    //callbacks
+    //functions
     const applyFilter = useCallback((objs: IObj[], filter: filterType) => {
         // filtering before every render
         // Rendering on each change select value and blur input field
@@ -107,6 +119,4 @@ function App() {
             </>
         );
     }
-}
-
-export default App;
+})
