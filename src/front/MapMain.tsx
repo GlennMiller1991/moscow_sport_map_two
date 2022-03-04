@@ -278,13 +278,13 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
 
         if (circles && !this.circles.length) this.circles = circles
         this.circles.forEach(circle => {
-                circle.removeFrom(this.map);
+            circle.removeFrom(this.map);
         })
         this.circles = [];
 
         if (nearestMarkers && !this.nearestMarkers.length) this.nearestMarkers = nearestMarkers
         this.nearestMarkers.forEach(marker => {
-                marker.removeFrom(this.map);
+            marker.removeFrom(this.map);
         });
         this.nearestMarkers = [];
 
@@ -328,6 +328,28 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
 
         let rgbStr = getColorBySquare(sumSquare);
         return {zoneTypes, sports, rgbStr, sumSquare}
+    }
+
+    getCoordsSquare(objs: IObj[]) {
+        let minLat = +Infinity;
+        let minLng = +Infinity;
+        let maxLat = 0;
+        let maxLng = 0;
+        for (let i = 0; i < objs.length; i++) {
+            if (objs[i].lat < minLat) {
+                minLat = objs[i].lat;
+            }
+            if (objs[i].lat > maxLat) {
+                maxLat = objs[i].lat;
+            }
+            if (objs[i].lng < minLng) {
+                minLng = objs[i].lng;
+            }
+            if (objs[i].lng > maxLng) {
+                maxLng = objs[i].lng;
+            }
+        }
+        return {minLat, minLng, maxLat, maxLng}
     }
 
     nearestObj(event: any) {
@@ -497,9 +519,18 @@ export default class MapMain extends React.Component<IMapMainProps, IMapMainStat
                             if (!this.map) {
 
                                 this.map = DG.map('map', {
-                                    'center': [55.754753, 37.620861],
-                                    'zoom': 11
+                                    zoom: 16,
+                                    center: [55.7, 37.5]
                                 });
+                                const maxCoords = this.getCoordsSquare(this.props.objs)
+                                const bound = [
+                                    [maxCoords.minLat, maxCoords.minLng],
+                                    [maxCoords.maxLat, maxCoords.maxLng],
+                                ]
+                                const southWest = DG.latLng(bound[0][0], bound[0][1])
+                                const northEast = DG.latLng(bound[1][0], bound[1][1])
+                                const bounds = DG.latLngBounds(southWest, northEast)
+                                this.map.fitBounds(bounds);
 
                                 this.map.on('click', (event) => {
 
