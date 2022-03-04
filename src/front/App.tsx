@@ -30,8 +30,8 @@ function App() {
 
     //state
     const [isEntranceRemoved, setIsEntranceRemoved] = useState(false)
-    const [objs, setObjs] = useState<IObj[]>(sprtObjs as unknown as IObj[])
     const filter = useSelector<stateType, filterType>(state => state.appState.filter)
+    const objs = useSelector<stateType, Array<IObj>>(state => state.appState.objs)
 
     const [buttonsState, setButtonsState] = useState<buttonsType>({
         isPopulationLayer: false,
