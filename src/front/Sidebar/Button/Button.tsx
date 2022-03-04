@@ -13,7 +13,8 @@ export const Button: React.FC<ButtonPropsType> = React.memo((props) => {
         <div className={styles.mix}>
             <button onClick={() => {
                 props.onClick({[props.keyName]: !props.currentState});
-            }}>{props.currentState ? 'Убрать' : 'Показать'} {props.text}
+            }} style={props.currentState ? {backgroundColor: 'rgba(128,243,70,0.5)'} : {}}>
+                {props.text}
             </button>
         </div>
     )
