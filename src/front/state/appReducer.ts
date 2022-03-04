@@ -1,5 +1,5 @@
 import {IObj} from "../../mid/misc/types";
-import {actionsType, UPDATE_FILTER} from "./actions";
+import {actionsType, UPDATE_FILTER, UPLOAD_OBJECTS} from "./actions";
 
 //types
 export type buttonsType = {
@@ -44,6 +44,11 @@ export const appReducer = (state: appStateType = initialState, action: actionsTy
                     filter: {...state.filter, ...action.payload.filter}
                 }
             } else return state
+        case UPLOAD_OBJECTS:
+            return {
+                ...state,
+                ...action.payload,
+            }
         default:
             return state
     }
